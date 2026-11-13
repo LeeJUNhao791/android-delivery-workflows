@@ -18,6 +18,30 @@ node run.mjs ../../build/webrtc-preview
 
 Linux 可用 `npx playwright install --with-deps chromium --only-shell` 一并安装系统依赖。测试需要本机 IPv4 接口，通过本地 UDP 中继传输，无需摄像头、TURN 服务或公开视频源。
 
+## 用电脑摄像头测试
+
+在发送端电脑接好摄像头，并在系统设置允许桌面应用访问摄像头。安装 Node 依赖后，从仓库根目录执行以下命令。摄像头模式需要完整的 Playwright Chromium。
+
+```sh
+cd tools/webrtc-preview
+npx playwright install chromium --no-shell
+node run.mjs ../../build/webrtc-camera/desktop --camera
+```
+
+浏览器选用默认摄像头，只采集视频。报告记录摄像头名称、浏览器选定的分辨率和帧率设置，以及与固定视频源相同的接收端和中继指标。测试只保存 JSON。
+
+要把电脑摄像头画面发到手机，可在 [Kotlin 或 Flutter 命令](webrtc-native.zh-CN.md#手机-wi-fi-恢复)后加 `--camera`。每轮使用独立的输出目录。
+
+本次发送端是 Windows 上的 HP True Vision FHD Camera，浏览器选择了 640×360、20 fps。Android 接收端是 Pixel 4 XL（Android 11）。
+
+| 接收端 | 首帧 | 600 kbit/s 上限下的实测转发码率 | UDP 中继恢复 | 手机 Wi-Fi 恢复 |
+| --- | ---: | ---: | ---: | ---: |
+| 桌面 Chromium | 144 ms | 27.4 kbit/s | 2066 ms | — |
+| Kotlin 原生 | 480 ms | 27.4 kbit/s | 1949 ms | 7017 ms |
+| Flutter → Kotlin | 525 ms | 29.1 kbit/s | 2042 ms | 8866 ms |
+
+两个 Android 入口都在手机拿回原 IPv4 地址后重建一次会话。实测摄像头流量远低于上限。需要复现带宽压力时，用上面的固定视频源。
+
 ## 查看 JSON 报告
 
 打开 `build/webrtc-preview/report.json`。成功返回 0，场景失败返回 1。

@@ -2,7 +2,7 @@
 
 [简体中文](webrtc-native.zh-CN.md) · [Browser preview guide](webrtc-preview.md)
 
-The Android debug example receives the same fixed WebRTC stream as the browser check. It counts frames submitted by the native EGL renderer and records the receiver's WebRTC statistics. USB ADB carries only the test commands and results. Video crosses Wi-Fi via the existing UDP relay.
+The Android debug example receives the fixed WebRTC stream by default. To use a live feed, follow the [desktop camera setup](webrtc-preview.md#run-with-a-desktop-camera). The example counts frames submitted by the native EGL renderer and records the receiver's WebRTC statistics. USB ADB carries only the test commands and results. Video crosses Wi-Fi via the existing UDP relay.
 
 ## Kotlin receiver
 

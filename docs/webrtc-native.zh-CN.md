@@ -2,7 +2,7 @@
 
 [English](webrtc-native.md) · [浏览器验收 SOP](webrtc-preview.zh-CN.md)
 
-Android 调试版接收与浏览器版相同的固定 WebRTC 测试流。报告记录 EGL 实际渲染帧数和接收端 WebRTC 统计。USB ADB 只传输测试指令和结果，视频通过 Wi-Fi 和现有 UDP 中继传输。
+Android 调试版默认接收固定 WebRTC 测试流。要发送真实画面，参照[电脑摄像头测试](webrtc-preview.zh-CN.md#用电脑摄像头测试)。报告记录 EGL 实际渲染帧数和接收端 WebRTC 统计。USB ADB 只传输测试指令和结果，视频通过 Wi-Fi 和现有 UDP 中继传输。
 
 ## Kotlin 原生接收
 

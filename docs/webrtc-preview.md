@@ -18,6 +18,30 @@ node run.mjs ../../build/webrtc-preview
 
 On Linux, use `npx playwright install --with-deps chromium --only-shell` to install Chromium and system dependencies together. Chromium and the relay need a local IPv4 interface. The test uses local UDP traffic and does not require a camera, TURN server, or public stream.
 
+## Run with a desktop camera
+
+Connect a camera to the sending computer and allow desktop apps to use it in the operating system. Install the full Playwright Chromium build for camera capture. Run from the repository root after installing the Node dependencies:
+
+```sh
+cd tools/webrtc-preview
+npx playwright install chromium --no-shell
+node run.mjs ../../build/webrtc-camera/desktop --camera
+```
+
+The browser selects its default camera and requests video only. The report records the camera label and browser-selected resolution and frame-rate setting. It also records the same receiver and relay metrics as the fixed-source run. The test does not save photos or video.
+
+To send the camera to an Android phone, add `--camera` to either [Kotlin or Flutter command](webrtc-native.md#phone-wi-fi-recovery). Use a separate output directory for each run. The camera stays on the sending computer.
+
+On Windows, the HP True Vision FHD Camera ran at a browser-selected 640×360 and 20 fps. The Android receiver was a Pixel 4 XL on Android 11.
+
+| Receiver | First frame | Forwarded rate under the 600 kbit/s cap | UDP relay recovery | Phone Wi-Fi recovery |
+| --- | ---: | ---: | ---: | ---: |
+| Desktop Chromium | 144 ms | 27.4 kbit/s | 2066 ms | — |
+| Kotlin native | 480 ms | 27.4 kbit/s | 1949 ms | 7017 ms |
+| Flutter → Kotlin | 525 ms | 29.1 kbit/s | 2042 ms | 8866 ms |
+
+Both Android entries used one new session after the phone regained its original IPv4 address. The camera stream stayed well below the cap. Use the fixed source above to exercise the relay's bandwidth limit.
+
 ## Read the JSON report
 
 Open `build/webrtc-preview/report.json`. The process exits with 0 on success and 1 on a failed scenario.

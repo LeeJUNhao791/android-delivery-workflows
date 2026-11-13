@@ -12,12 +12,14 @@ import { recoverWifi } from './wifi-recovery.mjs';
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: { native: { type: 'boolean' }, flutter: { type: 'boolean' }, cdp: { type: 'string' }, host: { type: 'string' }, phone: { type: 'string' },
-    adb: { type: 'string', default: 'adb' }, serial: { type: 'string' }, 'cycle-wifi': { type: 'boolean' } },
+    adb: { type: 'string', default: 'adb' }, serial: { type: 'string' }, 'cycle-wifi': { type: 'boolean' }, camera: { type: 'boolean' } },
 });
 const output = resolve(positionals[0] ?? 'build/webrtc-preview');
 const sampleMs = 4000;
 const outageMs = 4000;
 const limit = 600000;
+const previewUrl = 'http://127.0.0.1:8765/';
+const testSource = { width: 640, height: 360, framesPerSecond: 20, seed: 12345 };
 const mobile = Boolean(values.cdp);
 const native = Boolean(values.native || values.flutter);
 if (native && (mobile || !values.serial || !values.host || !values.phone)) {
@@ -28,15 +30,36 @@ if (values['cycle-wifi'] && (!(mobile || native) || !values.serial || /:|\._adb-
   throw new Error('Wi-Fi cycling needs a USB ADB device and --cdp, --native, or --flutter');
 }
 
-async function openPeer(page, sender, addresses, phoneAddress) {
-  return page.evaluate(({ sender, addresses, phoneAddress }) => {
+async function openPeer(page, sender, addresses, phoneAddress, camera = false) {
+  if (camera) await page.context().grantPermissions(['camera'], { origin: new URL(previewUrl).origin });
+  return page.evaluate(async ({ sender, addresses, phoneAddress, camera, testSource }) => {
     const peer = new RTCPeerConnection();
     let rendered = 0;
     let firstFrameMs = null;
     let started;
     let restored;
     let recoveryMs = null;
-    if (sender) {
+    let source;
+    if (camera) {
+      const { width, height, framesPerSecond } = testSource;
+      let timeout;
+      const stream = await Promise.race([
+        navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: framesPerSecond } },
+        }),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('camera capture timed out')), 10000);
+        }),
+      ]).catch((error) => {
+        throw new Error(`Could not open the desktop camera (${error.name}): ${error.message}`);
+      }).finally(() => clearTimeout(timeout));
+      const [track] = stream.getVideoTracks();
+      const settings = track.getSettings();
+      source = { kind: 'camera', label: track.label, width: settings.width ?? null,
+        height: settings.height ?? null, framesPerSecond: settings.frameRate ?? null };
+      peer.addTrack(track, stream);
+    } else if (sender) {
       document.body.innerHTML = '<canvas width="640" height="360" hidden></canvas>';
       const canvas = document.querySelector('canvas');
       const ctx = canvas.getContext('2d');
@@ -116,15 +139,16 @@ async function openPeer(page, sender, addresses, phoneAddress) {
         };
       },
     };
-  }, { sender, addresses, phoneAddress });
+    return source;
+  }, { sender, addresses, phoneAddress, camera, testSource });
 }
 
 async function previewPage(browser, remote = false) {
   const page = remote ? await browser.contexts()[0].newPage() : await browser.newPage();
-  await page.route('http://127.0.0.1:8765/', (route) => route.fulfill({
+  await page.route(previewUrl, (route) => route.fulfill({
     contentType: 'text/html', body: '<!doctype html><title>WebRTC preview</title>',
   }));
-  await page.goto('http://127.0.0.1:8765/');
+  await page.goto(previewUrl);
   if (remote) await page.bringToFront();
   return page;
 }
@@ -195,6 +219,7 @@ async function testWifi(sample, markRestored, relayPort, state, replaceSession) 
 
 async function run() {
   const browser = await chromium.launch({
+    channel: values.camera ? 'chromium' : undefined,
     args: ['--disable-features=WebRtcHideLocalIpsWithMdns'],
   });
   let relay;
@@ -204,7 +229,7 @@ async function run() {
   let page;
   const report = {
     result: 'FAIL', browser: browser.version(), platform: process.platform, receiver: native ? (values.flutter ? 'Flutter to Kotlin' : 'Kotlin native') : mobile ? 'Android Chrome' : 'desktop Chromium',
-    source: { width: 640, height: 360, framesPerSecond: 20, seed: 12345 },
+    source: values.camera ? { kind: 'camera' } : testSource,
     scenarios: {},
   };
   try {
@@ -217,7 +242,8 @@ async function run() {
     const addresses = Object.values(networkInterfaces()).flat()
       .filter((entry) => entry.family === 'IPv4' && !entry.internal).map((entry) => entry.address);
     if (!addresses.length) throw new Error('Chromium needs a local IPv4 network interface');
-    await openPeer(sender, true, addresses);
+    const source = await openPeer(sender, true, addresses, undefined, values.camera);
+    if (source) report.source = source;
     if (native) {
       signal = await createSignal();
       adbCommand('reverse', '--no-rebind', `tcp:${signal.port}`, `tcp:${signal.port}`);
@@ -340,7 +366,8 @@ async function run() {
         await sender.close();
         await signal.call('reset');
         sender = await previewPage(browser);
-        await openPeer(sender, true, addresses);
+        const replacementSource = await openPeer(sender, true, addresses, undefined, values.camera);
+        if (replacementSource) report.scenarios.wifi.replacementSource = replacementSource;
         await connectSession();
       } : undefined;
       await testWifi(sample, markRestored, () => relay.right.port, report.scenarios.wifi, replaceSession);
