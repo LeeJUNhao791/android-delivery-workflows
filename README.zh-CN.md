@@ -31,9 +31,13 @@ Kotlin 示例扫描 Windows BLE 外设，读取计数、订阅通知，并在断
 
 构建同一个示例的两版 APK，检查覆盖安装后本地记录是否保留，并诊断低版本安装被拦截的原因。Kalama（Android 15）实测从版本 1 升到 2 后记录保留，降级安装被系统拦截。[ADB 升级验收 SOP](docs/adb-upgrade.zh-CN.md)
 
+## WebRTC 弱网预览验收
+
+用固定视频源跑正常、限速和断网恢复场景，记录首帧、接收端统计和恢复耗时。[上手 SOP](docs/webrtc-preview.zh-CN.md)
+
 ## 后续方向
 
-- WebRTC 弱网预览验收和 Flutter 调用 Kotlin 的桥接示例
+- Flutter 调用 Kotlin 的桥接示例
 
 相关项目包括 [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) 的 SDK/JNI 交付、[AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) 的跨端回归，以及 [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) 的静态 3D 尺寸检查。
 

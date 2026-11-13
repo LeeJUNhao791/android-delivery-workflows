@@ -31,9 +31,13 @@ The Kotlin app scans for a Windows BLE counter, reads its value, subscribes to u
 
 Build two versions of a dedicated demo and check whether a local record survives an in-place APK upgrade. On Kalama (Android 15), the record survived the upgrade from version 1 to 2 and Android rejected the attempted downgrade. [ADB upgrade guide](docs/adb-upgrade.md)
 
+## WebRTC preview check
+
+Run a fixed video stream under normal, rate-limited, and interrupted UDP forwarding. The report records first-frame time, receiver stats, and recovery time. [WebRTC preview guide](docs/webrtc-preview.md)
+
 ## Roadmap
 
-- Weak-network WebRTC preview checks and a Flutter-to-Kotlin bridge example
+- Flutter-to-Kotlin bridge example
 
 Related projects include [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) for SDK/JNI delivery, [AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) for cross-platform regression, and [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) for static 3D assets.
 

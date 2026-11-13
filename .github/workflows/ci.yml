@@ -66,3 +66,27 @@ jobs:
     uses: ./.github/workflows/aab-preflight.yml
     with:
       artifact-name: demo-candidate
+
+  webrtc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/webrtc-preview
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium --only-shell
+      - run: npm test
+      - run: node run.mjs ../../build/webrtc-preview
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: webrtc-preview-report
+          path: build/webrtc-preview/report.json
+          if-no-files-found: warn
