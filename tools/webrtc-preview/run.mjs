@@ -19,12 +19,12 @@ const outageMs = 4000;
 const limit = 600000;
 const mobile = Boolean(values.cdp);
 const native = Boolean(values.native || values.flutter);
-if (native && (mobile || values['cycle-wifi'] || !values.serial || !values.host || !values.phone)) {
+if (native && (mobile || !values.serial || !values.host || !values.phone)) {
   throw new Error('Native preview needs --host, --phone and --serial');
 }
 if (mobile && (!values.host || !values.phone)) throw new Error('Use --host and --phone with --cdp');
-if (values['cycle-wifi'] && (!mobile || !values.serial)) {
-  throw new Error('Wi-Fi cycling needs --cdp and --serial');
+if (values['cycle-wifi'] && (!(mobile || native) || !values.serial || /:|\._adb-/.test(values.serial))) {
+  throw new Error('Wi-Fi cycling needs a USB ADB device and --cdp, --native, or --flutter');
 }
 
 async function openPeer(page, sender, addresses, phoneAddress) {
@@ -151,15 +151,16 @@ function adbCommand(...args) {
 
 function adb(...args) { return adbCommand('shell', ...args); }
 
-async function testWifi(page, sample, relay) {
+async function testWifi(sample, markRestored, relay, state) {
   const start = await sample();
-  const state = { startIceState: start.iceState };
+  state.startIceState = start.iceState;
   const address = () => adb('ip', '-4', 'addr', 'show', 'wlan0');
   if (!address().includes(`inet ${values.phone}/`)) throw new Error('Phone Wi-Fi IP does not match --phone');
   const startOff = performance.now();
-  adb('svc', 'wifi', 'disable');
   try {
+    adb('svc', 'wifi', 'disable');
     await waitFor(() => !address().includes('inet '), 'Phone Wi-Fi did not disconnect');
+    state.wifiDisconnected = true;
     await sleep(3000);
     const stopped = await sample();
     await sleep(1000);
@@ -169,18 +170,21 @@ async function testWifi(page, sample, relay) {
     if (state.framesInFinalSecond !== 0) throw new Error('Preview did not stop with Wi-Fi disabled');
   } finally {
     adb('svc', 'wifi', 'enable');
+    state.offMs = Math.round(performance.now() - startOff);
+    await waitFor(() => address().includes(`inet ${values.phone}/`),
+      'Phone did not recover its original Wi-Fi IPv4 address', 30000);
+    state.originalIpRestored = true;
   }
-  state.offMs = Math.round(performance.now() - startOff);
-  await waitFor(() => address().includes(`inet ${values.phone}/`),
-    'Phone did not recover its original Wi-Fi IPv4 address', 30000);
-  await page.evaluate(() => window.preview.markRestored());
+  await markRestored();
   const resumed = await waitFor(async () => {
     const s = await sample();
+    state.lastIceStateAfterIp = s.iceState;
     return s.recoveryMs !== null && s.rendered > start.rendered ? s : null;
   }, 'No video frame after Wi-Fi returned', 20000);
   if (resumed.remotePort !== relay.right.port) throw new Error('Wi-Fi recovery bypassed the relay');
-  return { ...state, nextFrameAfterIpMs: Math.round(resumed.recoveryMs),
-    iceAfterRecovery: resumed.iceState, reconnect: 'original peer connection' };
+  state.nextFrameAfterIpMs = Math.round(resumed.recoveryMs);
+  state.iceAfterRecovery = resumed.iceState;
+  state.reconnect = 'original peer connection';
 }
 
 async function run() {
@@ -322,7 +326,10 @@ async function run() {
       'No video frame after restoring the relay');
     if (resumed.remotePort !== relay.right.port) throw new Error('Recovery bypassed the relay');
     report.scenarios.outage.recoveryMs = Math.round(resumed.recoveryMs);
-    if (values['cycle-wifi']) report.scenarios.wifi = await testWifi(page, sample, relay);
+    if (values['cycle-wifi']) {
+      report.scenarios.wifi = {};
+      await testWifi(sample, markRestored, relay, report.scenarios.wifi);
+    }
     if (native) await signal.call('complete');
     report.result = 'PASS';
   } catch (error) {

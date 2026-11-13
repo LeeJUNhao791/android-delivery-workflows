@@ -1,0 +1,53 @@
+{
+  "result": "FAIL",
+  "browser": "158.0.8127.18",
+  "platform": "win32",
+  "receiver": "Kotlin native",
+  "source": {
+    "width": 640,
+    "height": 360,
+    "framesPerSecond": 20,
+    "seed": 12345
+  },
+  "scenarios": {
+    "normal": {
+      "durationMs": 4005,
+      "renderedFrames": 12,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 658432,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 1307422
+    },
+    "limited": {
+      "senderLimitBitsPerSecond": 600000,
+      "durationMs": 4010,
+      "renderedFrames": 9,
+      "framesDropped": 2,
+      "packetsLost": 82,
+      "forwardedBytes": 235428,
+      "queueDrops": 123,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 456581
+    },
+    "outage": {
+      "durationMs": 4126,
+      "forwardedPackets": 0,
+      "outageDrops": 205,
+      "renderedFramesInFinalSecond": 0,
+      "recoveryMs": 1194
+    },
+    "wifi": {
+      "startIceState": "connected",
+      "wifiDisconnected": true,
+      "framesInFinalSecond": 0,
+      "iceWhileOff": "connected",
+      "offMs": 4551,
+      "originalIpRestored": true,
+      "lastIceStateAfterIp": "failed"
+    }
+  },
+  "firstFrameMs": 546,
+  "error": "No video frame after Wi-Fi returned"
+}

@@ -196,10 +196,12 @@ class NativePreviewActivity : Activity() {
         val transport = map.values.firstOrNull { it.type == "transport" && it.members.containsKey("selectedCandidatePairId") }
         val pair = map[transport?.members?.get("selectedCandidatePairId") as? String]
         val remote = map[pair?.members?.get("remoteCandidateId") as? String]
+        val iceState = peer.iceConnectionState().name.lowercase()
         return synchronized(lock) {
             JSONObject().put("rendered", rendered)
                 .put("firstFrameMs", first ?: JSONObject.NULL)
                 .put("recoveryMs", recovered ?: JSONObject.NULL)
+                .put("iceState", iceState)
                 .put("remotePort", remote?.members?.get("port") ?: JSONObject.NULL)
                 .put("framesDropped", video?.members?.get("framesDropped") ?: JSONObject.NULL)
                 .put("packetsLost", video?.members?.get("packetsLost") ?: JSONObject.NULL)

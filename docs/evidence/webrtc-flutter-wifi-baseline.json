@@ -1,0 +1,53 @@
+{
+  "result": "FAIL",
+  "browser": "158.0.8127.18",
+  "platform": "win32",
+  "receiver": "Flutter to Kotlin",
+  "source": {
+    "width": 640,
+    "height": 360,
+    "framesPerSecond": 20,
+    "seed": 12345
+  },
+  "scenarios": {
+    "normal": {
+      "durationMs": 4006,
+      "renderedFrames": 15,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 766447,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 1523784
+    },
+    "limited": {
+      "senderLimitBitsPerSecond": 600000,
+      "durationMs": 4008,
+      "renderedFrames": 8,
+      "framesDropped": 1,
+      "packetsLost": 59,
+      "forwardedBytes": 233965,
+      "queueDrops": 100,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 455694
+    },
+    "outage": {
+      "durationMs": 4196,
+      "forwardedPackets": 0,
+      "outageDrops": 150,
+      "renderedFramesInFinalSecond": 0,
+      "recoveryMs": 1519
+    },
+    "wifi": {
+      "startIceState": "connected",
+      "wifiDisconnected": true,
+      "framesInFinalSecond": 0,
+      "iceWhileOff": "connected",
+      "offMs": 4500,
+      "originalIpRestored": true,
+      "lastIceStateAfterIp": "failed"
+    }
+  },
+  "firstFrameMs": 471,
+  "error": "No video frame after Wi-Fi returned"
+}

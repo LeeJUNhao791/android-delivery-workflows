@@ -46,7 +46,7 @@ adb -s SERIAL forward --remove tcp:9222
 
 `HOST_WIFI_IP` 填电脑的 Wi-Fi IPv4 地址，手机需要能访问该地址上的本地 UDP 端口。ADB 未加入 PATH 时可用 `--adb` 指定路径。终端使用 HTTP 代理时，将本机地址加入代理例外。
 
-前 3 个场景沿用桌面发送端和中继。指定 `--cycle-wifi` 后，脚本还会通过 USB ADB 关闭手机 Wi-Fi，确认画面停止，再重新开启。等手机恢复原 IPv4 地址后，记录下一帧耗时。报告单独记录 ICE 状态，短暂中断期间可能一直显示已连接。本节覆盖 Android Chrome 在同一 Wi-Fi、同一 IPv4 地址下的恢复。原生播放器和切换网络是后续验收项。
+前 3 个场景沿用桌面发送端和中继。指定 `--cycle-wifi` 后，脚本还会通过 USB ADB 关闭手机 Wi-Fi，确认画面停止，再重新开启。等手机恢复原 IPv4 地址后，记录下一帧耗时。报告单独记录 ICE 状态，短暂中断期间可能一直显示已连接。本节覆盖 Android Chrome 在同一 Wi-Fi、同一 IPv4 地址下的恢复。Kotlin 和 Flutter 的结果见[原生预览验收](webrtc-native.zh-CN.md#手机-wi-fi-恢复)。
 
 ## 实测记录
 

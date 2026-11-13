@@ -46,7 +46,7 @@ adb -s SERIAL forward --remove tcp:9222
 
 Use the computer's Wi-Fi IPv4 address for `HOST_WIFI_IP`. The phone must be able to reach local UDP ports on that address. Use `--adb` to supply the executable path when ADB is outside PATH. If the shell uses an HTTP proxy, add localhost to its no-proxy list.
 
-The first three scenarios use the same sender and relay as the desktop run. With `--cycle-wifi`, the script then turns off phone Wi-Fi via USB ADB, checks that video stops, and re-enables Wi-Fi. It waits for the original IPv4 address, then times the next rendered frame. The browser's ICE state is recorded separately and can stay connected through a short interruption. The procedure measures recovery in Android Chrome on the same Wi-Fi network and original IPv4 address. Native playback and switching networks remain separate tests.
+The first three scenarios use the same sender and relay as the desktop run. With `--cycle-wifi`, the script then turns off phone Wi-Fi via USB ADB, checks that video stops, and re-enables Wi-Fi. It waits for the original IPv4 address, then times the next rendered frame. The browser's ICE state is recorded separately and can stay connected through a short interruption. The procedure measures recovery in Android Chrome on the same Wi-Fi network and original IPv4 address. See the [native preview guide](webrtc-native.md#phone-wi-fi-recovery) for the Kotlin and Flutter results.
 
 ## Measured results
 
