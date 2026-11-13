@@ -30,4 +30,31 @@ Linux 可用 `npx playwright install --with-deps chromium --only-shell` 一并�
 
 首帧耗时从开始交换中继候选地址算起，恢复耗时从重新开启转发算起。`framesDropped` 来自 WebRTC 接收端统计。评估预览效果时同时看 `renderedFrames` 和 `packetsLost`，接收端掉帧为 0 时，渲染帧数仍可能下降。
 
-首版验收覆盖桌面 Chromium 的 WebRTC 传输与渲染。Android 播放和实际 Wi-Fi 弱网是后续验收项。GitHub Actions 会运行同一套检查并保留 JSON 报告。
+GitHub Actions 会执行桌面检查并保留 JSON 报告。手机实测按下节操作。
+
+## Android Chrome 真机验收
+
+电脑和手机连同一个 Wi-Fi。用 USB 连接并授权 ADB，在解锁的手机上打开 Chrome。用 `adb devices -l` 取得设备序列号，用 `adb -s SERIAL shell ip -4 addr show wlan0` 查看手机 Wi-Fi 的 IPv4 地址。
+
+安装好前面的桌面依赖后，从仓库根目录运行：
+
+```sh
+adb -s SERIAL forward tcp:9222 localabstract:chrome_devtools_remote
+node tools/webrtc-preview/run.mjs build/webrtc-android --cdp http://127.0.0.1:9222 --host HOST_WIFI_IP --phone PHONE_WIFI_IP --serial SERIAL --cycle-wifi
+adb -s SERIAL forward --remove tcp:9222
+```
+
+`HOST_WIFI_IP` 填电脑的 Wi-Fi IPv4 地址，手机需要能访问该地址上的本地 UDP 端口。ADB 未加入 PATH 时可用 `--adb` 指定路径。终端使用 HTTP 代理时，将本机地址加入代理例外。
+
+前 3 个场景沿用桌面发送端和中继。指定 `--cycle-wifi` 后，脚本还会通过 USB ADB 关闭手机 Wi-Fi，确认画面停止，再重新开启。等手机恢复原 IPv4 地址后，记录下一帧耗时。报告单独记录 ICE 状态，短暂中断期间可能一直显示已连接。本节覆盖 Android Chrome 在同一 Wi-Fi、同一 IPv4 地址下的恢复。原生播放器和切换网络是后续验收项。
+
+## 实测记录
+
+同一个固定测试源，Windows 桌面 Chromium 和 Pixel 4 XL（Android 11，Chrome 156.0.8078.47）分别跑完验收。
+
+| 接收端 | 首帧 | 正常/限速渲染帧 | 4 秒中继断流后恢复 |
+| --- | ---: | ---: | ---: |
+| Windows Chromium | 300 ms | 14 / 10 | 2987 ms |
+| Pixel 4 XL | 483 ms | 15 / 8 | 2573 ms |
+
+Pixel 限速阶段实测 586 kbit/s，接收端统计掉帧 0、丢包 59。手机 Wi-Fi 实际关闭约 4.446 秒后重新开启，检测到原 IPv4 地址后 3047 ms 收到新画面。原 WebRTC 连接在这次中断中保持使用。

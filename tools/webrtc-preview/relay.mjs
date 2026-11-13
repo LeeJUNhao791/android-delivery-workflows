@@ -8,12 +8,11 @@ async function bind(address) {
   return socket;
 }
 
-export async function createRelay(a, b) {
-  if (a.address !== b.address) throw new Error('Both peers must use the same local interface');
+export async function createRelay(a, b, receiverInterface = a.address) {
   const left = await bind(a.address);
   let right;
   try {
-    right = await bind(b.address);
+    right = await bind(receiverInterface);
   } catch (error) {
     left.close();
     throw error;
