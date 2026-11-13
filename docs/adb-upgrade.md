@@ -46,6 +46,8 @@ INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected: Update version code 1 is o
 
 Version 2 and the marker were still present after the rejection. This run used the demo's debug signing and file storage.
 
+The Pixel 4 XL (Android 11, API 30, ARM64) passed all 12 steps with the same APK pair as Kalama. The version 2 screen displayed the original marker. Android returned the same downgrade error, and version 2 and the marker survived the rejection.
+
 ## Diagnose saved install output
 
 ```sh

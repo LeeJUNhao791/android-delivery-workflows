@@ -45,6 +45,8 @@ INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected: Update version code 1 is o
 
 拦截后仍是版本 2，记录内容一致。本次测试使用示例的调试签名和文件存储。
 
+Pixel 4 XL（Android 11，API 30，ARM64）使用与 Kalama 相同的两版 APK，12 个步骤全部通过。版本 2 界面显示版本 1 写入的同一条记录。系统返回同一个降级错误码，拦截后版本和记录保持一致。
+
 ## 分析已有安装日志
 
 ```powershell
