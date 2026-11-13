@@ -7,6 +7,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import { createRelay } from './relay.mjs';
 import { createSignal } from './native-signal.mjs';
+import { recoverWifi } from './wifi-recovery.mjs';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -151,9 +152,8 @@ function adbCommand(...args) {
 
 function adb(...args) { return adbCommand('shell', ...args); }
 
-async function testWifi(sample, markRestored, relay, state) {
-  const start = await sample();
-  state.startIceState = start.iceState;
+async function testWifi(sample, markRestored, relayPort, state, replaceSession) {
+  state.startIceState = (await sample()).iceState;
   const address = () => adb('ip', '-4', 'addr', 'show', 'wlan0');
   if (!address().includes(`inet ${values.phone}/`)) throw new Error('Phone Wi-Fi IP does not match --phone');
   const startOff = performance.now();
@@ -175,16 +175,22 @@ async function testWifi(sample, markRestored, relay, state) {
       'Phone did not recover its original Wi-Fi IPv4 address', 30000);
     state.originalIpRestored = true;
   }
+  const ipRestoredAt = performance.now();
   await markRestored();
-  const resumed = await waitFor(async () => {
-    const s = await sample();
-    state.lastIceStateAfterIp = s.iceState;
-    return s.recoveryMs !== null && s.rendered > start.rendered ? s : null;
-  }, 'No video frame after Wi-Fi returned', 20000);
-  if (resumed.remotePort !== relay.right.port) throw new Error('Wi-Fi recovery bypassed the relay');
-  state.nextFrameAfterIpMs = Math.round(resumed.recoveryMs);
-  state.iceAfterRecovery = resumed.iceState;
-  state.reconnect = 'original peer connection';
+  await recoverWifi(state, ipRestoredAt, async (timeout) => {
+    const deadline = performance.now() + timeout;
+    while (performance.now() < deadline) {
+      const frame = await sample();
+      state.lastIceStateAfterIp = frame.iceState;
+      const recovered = state.reconnectAttempts ? frame.firstFrameMs : frame.recoveryMs;
+      if (Number.isFinite(recovered)) {
+        if (frame.remotePort !== relayPort()) throw new Error('Wi-Fi recovery bypassed the relay');
+        return frame;
+      }
+      await sleep(100);
+    }
+    return null;
+  }, replaceSession);
 }
 
 async function run() {
@@ -202,7 +208,7 @@ async function run() {
     scenarios: {},
   };
   try {
-    const sender = await previewPage(browser);
+    let sender = await previewPage(browser);
     if (mobile) {
       phoneBrowser = await chromium.connectOverCDP(values.cdp, { timeout: 10000 });
       report.receiverBrowser = phoneBrowser.version();
@@ -223,11 +229,6 @@ async function run() {
     } else {
       await openPeer(page, false, mobile ? [values.phone] : addresses, values.phone);
     }
-    const offer = await sender.evaluate(() => window.preview.describe('offer'));
-    const answer = native
-      ? { type: 'answer', ...await signal.call('offer', { sdp: offer.sdp }) }
-      : await page.evaluate((offer) => window.preview.describe('answer', offer), offer);
-    await sender.evaluate((answer) => window.preview.answer(answer), answer);
     const findCandidate = async (peer, name) => {
       try {
         const handle = await peer.waitForFunction(() => window.preview.candidate(), null,
@@ -239,33 +240,38 @@ async function run() {
           (candidate) => candidate.split(' ').slice(2, 8).join(' ')).join(', ') || 'none'})`, { cause: error });
       }
     };
-    const [fromSender, fromReceiver] = await Promise.all([
-      findCandidate(sender, 'sender'),
-      native
-        ? waitFor(async () => {
-          const value = await signal.call('candidate');
-          return value.candidate ? value : null;
-        }, 'No native UDP candidate', 7000)
-        : findCandidate(page, 'receiver'),
-    ]);
-    relay = await createRelay(endpoint(fromSender), endpoint(fromReceiver, values.phone), values.host);
     const sample = () => native ? signal.call('sample') : page.evaluate(() => window.preview.sample());
     const markRestored = () => native ? signal.call('restore') : page.evaluate(() => window.preview.markRestored());
-    const nativeCandidate = () => {
+    const connectSession = async () => {
+      const offer = await sender.evaluate(() => window.preview.describe('offer'));
+      const answer = native
+        ? { type: 'answer', ...await signal.call('offer', { sdp: offer.sdp }) }
+        : await page.evaluate((offer) => window.preview.describe('answer', offer), offer);
+      await sender.evaluate((answer) => window.preview.answer(answer), answer);
+      const [fromSender, fromReceiver] = await Promise.all([
+        findCandidate(sender, 'sender'),
+        native
+          ? waitFor(async () => {
+            const value = await signal.call('candidate');
+            return value.candidate ? value : null;
+          }, 'No native UDP candidate', 7000)
+          : findCandidate(page, 'receiver'),
+      ]);
+      relay = await createRelay(endpoint(fromSender), endpoint(fromReceiver, values.phone), values.host);
       const fields = fromSender.candidate.split(' ');
       fields[4] = relay.right.address;
       fields[5] = String(relay.right.port);
-      return { ...fromSender, candidate: fields.join(' ') };
+      await Promise.all([
+        sender.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.left, fromReceiver]),
+        native ? signal.call('connect', { ...fromSender, candidate: fields.join(' ') })
+          : page.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.right, fromSender]),
+      ]);
     };
     const waitForFrames = (predicate, message) => waitFor(async () => {
       const current = await sample();
       return predicate(current) ? current : null;
     }, message);
-    await Promise.all([
-      sender.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.left, fromReceiver]),
-      native ? signal.call('connect', nativeCandidate())
-        : page.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.right, fromSender]),
-    ]);
+    await connectSession();
     const first = await waitForFrames((s) => s.rendered > 0, 'No first video frame');
     report.firstFrameMs = Math.round(first.firstFrameMs);
     const windowStats = async (duration) => {
@@ -328,7 +334,16 @@ async function run() {
     report.scenarios.outage.recoveryMs = Math.round(resumed.recoveryMs);
     if (values['cycle-wifi']) {
       report.scenarios.wifi = {};
-      await testWifi(sample, markRestored, relay, report.scenarios.wifi);
+      const replaceSession = native ? async () => {
+        relay.close();
+        relay = undefined;
+        await sender.close();
+        await signal.call('reset');
+        sender = await previewPage(browser);
+        await openPeer(sender, true, addresses);
+        await connectSession();
+      } : undefined;
+      await testWifi(sample, markRestored, () => relay.right.port, report.scenarios.wifi, replaceSession);
     }
     if (native) await signal.call('complete');
     report.result = 'PASS';

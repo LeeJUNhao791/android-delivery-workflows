@@ -46,7 +46,9 @@ node tools/webrtc-preview/run.mjs build/webrtc-native-wifi --native --cycle-wifi
 node tools/webrtc-preview/run.mjs build/webrtc-flutter-wifi --flutter --cycle-wifi --host HOST_WIFI_IP --phone PHONE_WIFI_IP --serial SERIAL
 ```
 
-脚本关闭 Wi-Fi，确认画面停止后再开启 Wi-Fi。手机拿回原 IPv4 地址后，原 WebRTC 会话有 20 秒出画。超时判失败，JSON 仍会记录 Wi-Fi 和 ICE 状态。原会话一直停画时，可以重跑预览命令测量新会话。
+脚本关闭 Wi-Fi，确认画面停止后再开启 Wi-Fi。手机拿回原 IPv4 地址后，脚本先等原 WebRTC 会话恢复，最多等 5 秒。仍停画时，脚本通过 USB 信令重建一次发送端、Kotlin 连接和 UDP 中继，预览页面保持打开。
+
+总预算 20 秒，从脚本检测到原 IPv4 地址开始计时。报告记录脚本观察到新渲染帧的耗时、重建次数和最终使用的连接。超时判失败，JSON 仍会保留 Wi-Fi 和 ICE 状态。
 
 ## 真机记录
 
@@ -54,9 +56,18 @@ Pixel 4 XL（Android 11）原生预览首帧 435 ms。正常与限速阶段各�
 
 Flutter 调试版在同一台 Pixel 上通过三项场景。首帧 514 ms，正常和限速阶段分别渲染 14 和 6 帧。限速阶段实测 463 kbit/s，接收端掉帧 4，丢包 77。中继恢复后 2438 ms 渲染新画面。点原生页的 **Stop preview** 后，Flutter 页面显示 `Stopped` 和 `Last preview: Preview passed`。
 
-同一台 Pixel 4 XL 用两个入口各测了两次 Wi-Fi 开关。每次都确认断开时停画，手机随后拿回原 IPv4 地址，原 WebRTC 会话均等待超时。两组复测结束时 ICE 均为 `failed`。下表记录复测结果，以及 Wi-Fi 恢复后另行启动新会话的首帧。
+加入自动重建前，同一台 Pixel 4 XL 用两个入口各测了两次 Wi-Fi 开关。每次都确认断开时停画，手机随后拿回原 IPv4 地址，原 WebRTC 会话均等待超时。两组复测结束时 ICE 均为 `failed`。下表记录复测结果，以及 Wi-Fi 恢复后另行启动新会话的首帧。 [Kotlin 基线](evidence/webrtc-kotlin-wifi-baseline.json) · [Flutter 基线](evidence/webrtc-flutter-wifi-baseline.json)
 
 | 入口 | Wi-Fi 关闭到重新启用 | 断开期间最后一秒渲染帧数 | 原 IPv4 恢复后原会话 | 新会话首帧 |
 | --- | ---: | ---: | --- | ---: |
 | Kotlin 原生 | 4551 ms | 0 | 20 秒内未出画 | 506 ms |
 | Flutter → Kotlin | 4500 ms | 0 | 20 秒内未出画 | 1458 ms |
+
+加入自动重建后，同一台 Pixel 的两个入口各连续通过 3 轮。每轮都通过正常播放、限速、UDP 中继断流和手机 Wi-Fi 开关四项检查，Wi-Fi 回连后均重建一次会话并恢复出画。
+
+| 入口 | 通过轮次 | 检测到原 IPv4 后至观察到新画面 |
+| --- | ---: | --- |
+| Kotlin 原生 | 3/3 | 6183、6379、6271 ms |
+| Flutter → Kotlin | 3/3 | 6276、6237、6214 ms |
+
+最后一轮点 **Stop preview** 返回 Flutter 后，页面显示 `Stopped` 和 `Last preview: Preview passed`。逐轮 JSON 见 [v0.5.1 Release](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/tag/v0.5.1)。

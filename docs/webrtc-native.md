@@ -46,7 +46,9 @@ node tools/webrtc-preview/run.mjs build/webrtc-native-wifi --native --cycle-wifi
 node tools/webrtc-preview/run.mjs build/webrtc-flutter-wifi --flutter --cycle-wifi --host HOST_WIFI_IP --phone PHONE_WIFI_IP --serial SERIAL
 ```
 
-The runner disables Wi-Fi, checks that the renderer stops, and re-enables Wi-Fi. After the original IPv4 address returns, it gives the existing WebRTC session 20 seconds to render a new frame. A timeout fails the run and the JSON still records the Wi-Fi and ICE observations. Rerun the preview command to measure a new session if the original session stalls.
+The runner disables Wi-Fi, checks that the renderer stops, and re-enables Wi-Fi. When the original IPv4 address returns, the runner gives the existing WebRTC session up to five seconds to resume. If it still stalls, the runner uses USB signaling to rebuild the sender, Kotlin peer connection and UDP relay once. The preview activity stays open.
+
+The 20-second budget starts when the runner detects the original IPv4 address. The report records the time until the runner observes a new rendered frame, the number of replacement attempts and the connection used. A timeout fails the run and preserves the Wi-Fi and ICE observations.
 
 ## Device results
 
@@ -54,9 +56,18 @@ The Pixel 4 XL (Android 11) native preview rendered its first frame in 435 ms. I
 
 The Flutter debug build passed all three scenarios on the same Pixel. It rendered the first frame in 514 ms, then rendered 14 frames normally and 6 under the cap. The limited leg forwarded 463 kbit/s. The receiver reported 4 dropped frames and 77 lost packets. Video resumed in 2438 ms. After tapping **Stop preview** on the native screen, Flutter displayed `Stopped` and `Last preview: Preview passed`.
 
-The Pixel 4 XL also ran the Wi-Fi cycle twice per entry. Both entries stopped rendering while Wi-Fi was off, regained the original IPv4 address, and timed out on the original WebRTC session. ICE reached `failed` in both retests. The table shows the retest and a separate run that launched a new session after Wi-Fi was back.
+Before automatic replacement, the Pixel 4 XL ran the Wi-Fi cycle twice per entry. Both entries stopped rendering while Wi-Fi was off, regained the original IPv4 address, and timed out on the original WebRTC session. ICE reached `failed` in both retests. The table shows the retest and a separate run that launched a new session after Wi-Fi was back. [Kotlin baseline](evidence/webrtc-kotlin-wifi-baseline.json) · [Flutter baseline](evidence/webrtc-flutter-wifi-baseline.json)
 
 | Entry | Wi-Fi off interval | Frames in the final second offline | Original session after IPv4 return | First frame in a new session |
 | --- | ---: | ---: | --- | ---: |
 | Kotlin native | 4551 ms | 0 | No frame within 20 s | 506 ms |
 | Flutter → Kotlin | 4500 ms | 0 | No frame within 20 s | 1458 ms |
+
+With automatic replacement enabled, the same Pixel passed three consecutive runs per entry. Each run passed normal playback, rate limiting, UDP relay interruption and the phone Wi-Fi cycle. Each Wi-Fi cycle recovered after one replacement.
+
+| Entry | Runs passed | IPv4 return to a rendered frame observed by the runner |
+| --- | ---: | --- |
+| Kotlin native | 3/3 | 6183, 6379, 6271 ms |
+| Flutter → Kotlin | 3/3 | 6276, 6237, 6214 ms |
+
+After the last run, **Stop preview** returned to Flutter with `Stopped` and `Last preview: Preview passed`. The individual JSON reports are attached to the [v0.5.1 release](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/tag/v0.5.1).

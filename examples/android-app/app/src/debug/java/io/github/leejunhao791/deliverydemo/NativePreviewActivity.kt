@@ -93,30 +93,7 @@ class NativePreviewActivity : Activity() {
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(this).createInitializationOptions())
         factory = PeerConnectionFactory.builder().setVideoDecoderFactory(DefaultVideoDecoderFactory(egl.eglBaseContext))
             .createPeerConnectionFactory()
-        val config = PeerConnection.RTCConfiguration(emptyList()).apply {
-            sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-        }
-        peer = checkNotNull(factory.createPeerConnection(config, object : PeerConnection.Observer {
-            override fun onSignalingChange(state: PeerConnection.SignalingState) {}
-            override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {}
-            override fun onIceConnectionReceivingChange(receiving: Boolean) {}
-            override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) {}
-            override fun onIceCandidate(value: IceCandidate) {
-                val fields = value.sdp.split(' ')
-                if (fields.getOrNull(2).equals("udp", ignoreCase = true) &&
-                    fields.getOrNull(4)?.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+")) == true &&
-                    fields.getOrNull(7) == "host" && candidate == null) candidate = value
-            }
-            override fun onIceCandidatesRemoved(candidates: Array<IceCandidate>) {}
-            override fun onAddStream(stream: MediaStream) {}
-            override fun onRemoveStream(stream: MediaStream) {}
-            override fun onDataChannel(channel: DataChannel) {}
-            override fun onRenegotiationNeeded() {}
-            override fun onTrack(transceiver: RtpTransceiver) {
-                track = transceiver.receiver.track() as? VideoTrack
-                track?.addSink(renderer)
-            }
-        }))
+        peer = createPeer()
         worker = Thread({
             try {
                 val url = URL("http://127.0.0.1:$port/command")
@@ -127,7 +104,7 @@ class NativePreviewActivity : Activity() {
                         continue
                     }
                     val result = try {
-                        execute(command)
+                        execute(command, status)
                     } catch (error: Exception) {
                         JSONObject().put("error", error.message ?: error.javaClass.simpleName)
                     }
@@ -151,7 +128,54 @@ class NativePreviewActivity : Activity() {
         }, "preview-signal").apply { start() }
     }
 
-    private fun execute(command: JSONObject): JSONObject = when (command.getString("action")) {
+    private fun createPeer(): PeerConnection {
+        val config = PeerConnection.RTCConfiguration(emptyList()).apply {
+            sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+        }
+        return checkNotNull(factory.createPeerConnection(config, object : PeerConnection.Observer {
+            override fun onSignalingChange(state: PeerConnection.SignalingState) {}
+            override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {}
+            override fun onIceConnectionReceivingChange(receiving: Boolean) {}
+            override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) {}
+            override fun onIceCandidate(value: IceCandidate) {
+                val fields = value.sdp.split(' ')
+                if (fields.getOrNull(2).equals("udp", ignoreCase = true) &&
+                    fields.getOrNull(4)?.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+")) == true &&
+                    fields.getOrNull(7) == "host" && candidate == null) candidate = value
+            }
+            override fun onIceCandidatesRemoved(candidates: Array<IceCandidate>) {}
+            override fun onAddStream(stream: MediaStream) {}
+            override fun onRemoveStream(stream: MediaStream) {}
+            override fun onDataChannel(channel: DataChannel) {}
+            override fun onRenegotiationNeeded() {}
+            override fun onTrack(transceiver: RtpTransceiver) {
+                track = transceiver.receiver.track() as? VideoTrack
+                track?.addSink(renderer)
+            }
+        }))
+    }
+
+    private fun execute(command: JSONObject, status: TextView): JSONObject = when (command.getString("action")) {
+        "reset" -> {
+            runOnUiThread {
+                status.text = "Reconnecting video"
+                statusListener?.invoke("Reconnecting video")
+            }
+            val replacement = createPeer()
+            track?.removeSink(renderer)
+            track = null
+            peer.dispose()
+            candidate = null
+            synchronized(lock) {
+                started = 0L
+                restored = 0L
+                first = null
+                recovered = null
+                rendered = 0
+            }
+            peer = replacement
+            JSONObject()
+        }
         "offer" -> {
             sdp { peer.setRemoteDescription(it, SessionDescription(SessionDescription.Type.OFFER, command.getString("sdp"))) }
             val answer = sdp { peer.createAnswer(it, MediaConstraints()) }
