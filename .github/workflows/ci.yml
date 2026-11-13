@@ -30,7 +30,7 @@ jobs:
       - name: Test BLE recovery and build the examples
         working-directory: examples/android-app
         run: |
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:bundleRelease \
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease \
             :upgrade-demo:assembleBaselineDebug :upgrade-demo:assembleCandidateDebug
       - name: Test ADB upgrade and diagnosis logic
         run: python -B -m unittest discover -s tools/adb-upgrade/tests -v
@@ -90,3 +90,30 @@ jobs:
           name: webrtc-preview-report
           path: build/webrtc-preview/report.json
           if-no-files-found: warn
+
+  flutter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: examples/flutter-preview
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.41.9'
+          channel: stable
+      - name: Install Android build dependencies
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install \
+            "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub
+      - run: flutter build apk --debug --no-pub --target-platform android-arm64

@@ -35,9 +35,9 @@ Build two versions of a dedicated demo and check whether a local record survives
 
 Run a fixed video stream under normal, rate-limited, and interrupted UDP forwarding. The report records first-frame time, receiver stats, and recovery time. [WebRTC preview guide](docs/webrtc-preview.md)
 
-## Roadmap
+## Native preview and Flutter bridge
 
-- Flutter-to-Kotlin bridge example
+Run the same WebRTC scenarios on the Kotlin debug receiver and launch it from a Flutter platform channel. [Native preview guide](docs/webrtc-native.md)
 
 Related projects include [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) for SDK/JNI delivery, [AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) for cross-platform regression, and [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) for static 3D assets.
 

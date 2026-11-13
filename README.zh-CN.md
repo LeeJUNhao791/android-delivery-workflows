@@ -35,9 +35,9 @@ Kotlin 示例扫描 Windows BLE 外设，读取计数、订阅通知，并在断
 
 用固定视频源跑正常、限速和断网恢复场景，记录首帧、接收端统计和恢复耗时。[上手 SOP](docs/webrtc-preview.zh-CN.md)
 
-## 后续方向
+## 原生预览与 Flutter 桥接
 
-- Flutter 调用 Kotlin 的桥接示例
+用 Kotlin 调试页运行同一组 WebRTC 场景，也可通过 Flutter 平台通道启动原生接收页。[原生预览与桥接 SOP](docs/webrtc-native.zh-CN.md)
 
 相关项目包括 [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) 的 SDK/JNI 交付、[AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) 的跨端回归，以及 [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) 的静态 3D 尺寸检查。
 

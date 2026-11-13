@@ -19,9 +19,10 @@ export async function createRelay(a, b, receiverInterface = a.address) {
   }
   const events = new EventEmitter();
   const counters = { forwardedPackets: 0, forwardedBytes: 0, senderForwardedBytes: 0, queueDrops: 0, outageDrops: 0 };
-  const pending = new Set();
+  const queue = [];
   let profile = {};
-  let nextSend = 0;
+  let timer;
+  let queuedBytes = 0;
 
   function drop(counter) {
     counters[counter]++;
@@ -40,24 +41,35 @@ export async function createRelay(a, b, receiverInterface = a.address) {
     }
     if (!limited || !profile.bitsPerSecond) return send();
 
-    const now = performance.now();
-    const finish = Math.max(now, nextSend) + data.length * 8000 / profile.bitsPerSecond;
-    if (finish - now > 250) return drop('queueDrops');
-    nextSend = finish;
-    const timer = setTimeout(() => {
-      pending.delete(timer);
-      send();
-    }, finish - now);
-    pending.add(timer);
+    if ((queuedBytes + data.length) * 8000 / profile.bitsPerSecond > 250) {
+      return drop('queueDrops');
+    }
+    queuedBytes += data.length;
+    queue.push({ bytes: data.length, send });
+    if (!timer) drain();
+  }
+
+  function drain() {
+    const packet = queue[0];
+    if (!packet) return;
+    // Start pacing the next packet after this send, including any timer delay.
+    timer = setTimeout(() => {
+      timer = undefined;
+      queue.shift();
+      queuedBytes -= packet.bytes;
+      packet.send();
+      drain();
+    }, Math.ceil(packet.bytes * 8000 / profile.bitsPerSecond));
   }
 
   left.on('message', (data, source) => forward(data, source, a, b, right, true));
   right.on('message', (data, source) => forward(data, source, b, a, left, false));
 
   function resetQueue() {
-    for (const timer of pending) clearTimeout(timer);
-    pending.clear();
-    nextSend = 0;
+    clearTimeout(timer);
+    timer = undefined;
+    queue.length = 0;
+    queuedBytes = 0;
   }
 
   return {

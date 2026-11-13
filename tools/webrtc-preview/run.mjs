@@ -6,10 +6,11 @@ import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import { createRelay } from './relay.mjs';
+import { createSignal } from './native-signal.mjs';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { cdp: { type: 'string' }, host: { type: 'string' }, phone: { type: 'string' },
+  options: { native: { type: 'boolean' }, flutter: { type: 'boolean' }, cdp: { type: 'string' }, host: { type: 'string' }, phone: { type: 'string' },
     adb: { type: 'string', default: 'adb' }, serial: { type: 'string' }, 'cycle-wifi': { type: 'boolean' } },
 });
 const output = resolve(positionals[0] ?? 'build/webrtc-preview');
@@ -17,6 +18,10 @@ const sampleMs = 4000;
 const outageMs = 4000;
 const limit = 600000;
 const mobile = Boolean(values.cdp);
+const native = Boolean(values.native || values.flutter);
+if (native && (mobile || values['cycle-wifi'] || !values.serial || !values.host || !values.phone)) {
+  throw new Error('Native preview needs --host, --phone and --serial');
+}
 if (mobile && (!values.host || !values.phone)) throw new Error('Use --host and --phone with --cdp');
 if (values['cycle-wifi'] && (!mobile || !values.serial)) {
   throw new Error('Wi-Fi cycling needs --cdp and --serial');
@@ -138,11 +143,13 @@ async function waitFor(predicate, message, timeout = 12000) {
   throw new Error(message);
 }
 
-function adb(...args) {
-  return execFileSync(values.adb, ['-s', values.serial, 'shell', ...args], {
+function adbCommand(...args) {
+  return execFileSync(values.adb, ['-s', values.serial, ...args], {
     encoding: 'utf8', timeout: 5000, windowsHide: true,
   });
 }
+
+function adb(...args) { return adbCommand('shell', ...args); }
 
 async function testWifi(page, sample, relay) {
   const start = await sample();
@@ -182,9 +189,11 @@ async function run() {
   });
   let relay;
   let phoneBrowser;
+  let signal;
+  let reversed = false;
   let page;
   const report = {
-    result: 'FAIL', browser: browser.version(), platform: process.platform, receiver: mobile ? 'Android Chrome' : 'desktop Chromium',
+    result: 'FAIL', browser: browser.version(), platform: process.platform, receiver: native ? (values.flutter ? 'Flutter to Kotlin' : 'Kotlin native') : mobile ? 'Android Chrome' : 'desktop Chromium',
     source: { width: 640, height: 360, framesPerSecond: 20, seed: 12345 },
     scenarios: {},
   };
@@ -194,35 +203,64 @@ async function run() {
       phoneBrowser = await chromium.connectOverCDP(values.cdp, { timeout: 10000 });
       report.receiverBrowser = phoneBrowser.version();
     }
-    page = await previewPage(phoneBrowser ?? browser, mobile);
+    if (!native) page = await previewPage(phoneBrowser ?? browser, mobile);
     const addresses = Object.values(networkInterfaces()).flat()
       .filter((entry) => entry.family === 'IPv4' && !entry.internal).map((entry) => entry.address);
     if (!addresses.length) throw new Error('Chromium needs a local IPv4 network interface');
     await openPeer(sender, true, addresses);
-    await openPeer(page, false, mobile ? [values.phone] : addresses, values.phone);
+    if (native) {
+      signal = await createSignal();
+      adbCommand('reverse', '--no-rebind', `tcp:${signal.port}`, `tcp:${signal.port}`);
+      reversed = true;
+      const launch = adb('am', 'start', '-S', '-W', '-n',
+        values.flutter ? 'io.github.leejunhao791.delivery_flutter_preview/.BridgeActivity'
+          : 'io.github.leejunhao791.deliverydemo/.NativePreviewActivity', '--ei', 'signalPort', String(signal.port));
+      if (!launch.includes('Status: ok')) throw new Error(launch.trim());
+    } else {
+      await openPeer(page, false, mobile ? [values.phone] : addresses, values.phone);
+    }
     const offer = await sender.evaluate(() => window.preview.describe('offer'));
-    const answer = await page.evaluate((offer) => window.preview.describe('answer', offer), offer);
+    const answer = native
+      ? { type: 'answer', ...await signal.call('offer', { sdp: offer.sdp }) }
+      : await page.evaluate((offer) => window.preview.describe('answer', offer), offer);
     await sender.evaluate((answer) => window.preview.answer(answer), answer);
-    const [fromSender, fromReceiver] = await Promise.all([sender, page].map(async (peer, index) => {
+    const findCandidate = async (peer, name) => {
       try {
         const handle = await peer.waitForFunction(() => window.preview.candidate(), null,
           { timeout: 7000, polling: 100 });
         try { return await handle.jsonValue(); } finally { await handle.dispose(); }
       } catch (error) {
         const candidates = await peer.evaluate(() => window.preview.candidates);
-        throw new Error(`No usable ${index ? 'receiver' : 'sender'} UDP candidate (${candidates.map(
+        throw new Error(`No usable ${name} UDP candidate (${candidates.map(
           (candidate) => candidate.split(' ').slice(2, 8).join(' ')).join(', ') || 'none'})`, { cause: error });
       }
-    }));
+    };
+    const [fromSender, fromReceiver] = await Promise.all([
+      findCandidate(sender, 'sender'),
+      native
+        ? waitFor(async () => {
+          const value = await signal.call('candidate');
+          return value.candidate ? value : null;
+        }, 'No native UDP candidate', 7000)
+        : findCandidate(page, 'receiver'),
+    ]);
     relay = await createRelay(endpoint(fromSender), endpoint(fromReceiver, values.phone), values.host);
-    const sample = () => page.evaluate(() => window.preview.sample());
+    const sample = () => native ? signal.call('sample') : page.evaluate(() => window.preview.sample());
+    const markRestored = () => native ? signal.call('restore') : page.evaluate(() => window.preview.markRestored());
+    const nativeCandidate = () => {
+      const fields = fromSender.candidate.split(' ');
+      fields[4] = relay.right.address;
+      fields[5] = String(relay.right.port);
+      return { ...fromSender, candidate: fields.join(' ') };
+    };
     const waitForFrames = (predicate, message) => waitFor(async () => {
       const current = await sample();
       return predicate(current) ? current : null;
     }, message);
     await Promise.all([
       sender.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.left, fromReceiver]),
-      page.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.right, fromSender]),
+      native ? signal.call('connect', nativeCandidate())
+        : page.evaluate(([relay, candidate]) => window.preview.connect(relay, candidate), [relay.right, fromSender]),
     ]);
     const first = await waitForFrames((s) => s.rendered > 0, 'No first video frame');
     report.firstFrameMs = Math.round(first.firstFrameMs);
@@ -278,18 +316,24 @@ async function run() {
     if (forwarded !== 0 || dropped === 0 || stopped.rendered !== drain.rendered) {
       throw new Error('Outage did not interrupt the media path');
     }
-    await page.evaluate(() => window.preview.markRestored());
+    await markRestored();
     relay.profile({});
     const resumed = await waitForFrames((s) => s.recoveryMs !== null && s.rendered > stopped.rendered,
       'No video frame after restoring the relay');
     if (resumed.remotePort !== relay.right.port) throw new Error('Recovery bypassed the relay');
     report.scenarios.outage.recoveryMs = Math.round(resumed.recoveryMs);
     if (values['cycle-wifi']) report.scenarios.wifi = await testWifi(page, sample, relay);
+    if (native) await signal.call('complete');
     report.result = 'PASS';
   } catch (error) {
     report.error = error.message;
   } finally {
     relay?.close();
+    if (reversed) {
+      try { adbCommand('reverse', '--remove', `tcp:${signal.port}`); }
+      catch (error) { console.error(error.message); }
+    }
+    await signal?.close();
     try {
       if (phoneBrowser) {
         try { await page?.close(); } finally { await phoneBrowser.close(); }
