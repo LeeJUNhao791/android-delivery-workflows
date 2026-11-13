@@ -27,9 +27,9 @@ jobs:
       - name: Install Android SDK
         run: |
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
-      - name: Build the Kotlin example
+      - name: Test BLE recovery and build the Kotlin example
         working-directory: examples/android-app
-        run: ./gradlew --no-daemon :app:bundleRelease
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:bundleRelease
       - name: Prepare demo candidate
         run: python examples/android-app/prepare-demo.py
       - name: Download and verify bundletool

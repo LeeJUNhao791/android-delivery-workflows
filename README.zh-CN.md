@@ -23,9 +23,11 @@ python tools/aab-preflight/preflight.py candidate.aab --expect release.json --bu
 
 [构建 Kotlin 示例、复现重复版本，或把工作流接到自己的仓库](docs/getting-started.zh-CN.md)。
 
-## 后续方向
+## BLE 计数器示例
 
-- BLE 真机连接、状态读取与断连恢复
+Kotlin 示例扫描 Windows BLE 外设，读取计数、订阅通知，并在断连后重试。查看 [BLE 验收 SOP](docs/ble-recovery.zh-CN.md)和[真机记录](docs/ble-evidence.md)。Pixel 4 XL 自动恢复订阅并在 11.643 秒内收到新通知。Kalama 首次连接返回 GATT 133。
+
+## 后续方向
 - ADB 诊断和覆盖升级数据保留验收
 - WebRTC 弱网预览验收和 Flutter 调用 Kotlin 的桥接示例
 

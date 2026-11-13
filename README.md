@@ -23,9 +23,11 @@ Open `build/preflight/report.md` for the review and `build/preflight/report.json
 
 [Build the Kotlin demo, reproduce a duplicate version, or add the workflow to your repository](docs/getting-started.md).
 
-## Roadmap
+## BLE counter example
 
-- BLE connection, status reads, and recovery on an Android phone and development board
+The Kotlin app scans for a Windows BLE counter, reads its value, subscribes to updates, and retries after a disconnect. Follow the [BLE guide](docs/ble-recovery.md) and see the [hardware test record](docs/ble-evidence.md). The Pixel 4 XL restored its subscription and received a fresh notification in 11.643 seconds. Kalama's initial connection failed with GATT status 133.
+
+## Roadmap
 - ADB diagnostics and an upgrade test that verifies local data survives
 - Weak-network WebRTC preview checks and a Flutter-to-Kotlin bridge example
 

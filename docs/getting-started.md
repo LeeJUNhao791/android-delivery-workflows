@@ -15,7 +15,7 @@ python tools/aab-preflight/preflight.py build/demo/candidate.aab --expect build/
 python tools/aab-preflight/preflight.py build/demo/candidate.aab --expect build/demo/repeat-version.json --bundletool path/to/bundletool-all-1.18.1.jar --report-dir build/repeat-version
 ```
 
-The first preflight passes because version 2 exceeds 1. The second rejects the same AAB because version 2 does not exceed 2. Compare `build/pass/report.md` and `build/repeat-version/report.md`. Both report the same bundle hash. The demo uses a disposable key generated at run time.
+The first preflight passes because version 3 exceeds 2. The second rejects the same AAB because version 3 does not exceed 3. Compare `build/pass/report.md` and `build/repeat-version/report.md`. Both report the same bundle hash. The demo uses a disposable key generated at run time.
 
 GitHub Actions uploads the successful and rejected reports as `aab-preflight-report` and `repeat-version-report` on each successful [CI run](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml).
 

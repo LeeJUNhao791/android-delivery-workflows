@@ -39,7 +39,10 @@ class PreflightTests(unittest.TestCase):
         self.assertTrue(all(status == "PASS" for status in self.run_case().values()))
 
     def test_repeated_version(self):
-        checks = self.run_case(changes={"previous_version_code": 2}, expected_exit=1)
+        contract = json.loads((FIXTURES / "release.json").read_text(encoding="utf-8"))
+        checks = self.run_case(
+            changes={"previous_version_code": contract["version_code"]}, expected_exit=1
+        )
         self.assertEqual(checks["version_code_increased"], "FAIL")
 
     def test_wrong_identity_and_certificate(self):

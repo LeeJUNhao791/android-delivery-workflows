@@ -42,13 +42,13 @@ def main():
         )
     contract = {
         "application_id": "io.github.leejunhao791.deliverydemo",
-        "version_code": 2,
-        "version_name": "1.1",
+        "version_code": 3,
+        "version_name": "1.2",
         "upload_certificate_sha256": hashlib.sha256(certificate).hexdigest(),
-        "previous_version_code": 1,
+        "previous_version_code": 2,
     }
     (OUT / "release.json").write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
-    contract["previous_version_code"] = 2
+    contract["previous_version_code"] = contract["version_code"]
     (OUT / "repeat-version.json").write_text(
         json.dumps(contract, indent=2) + "\n", encoding="utf-8"
     )

@@ -15,7 +15,7 @@ python tools/aab-preflight/preflight.py build/demo/candidate.aab --expect build/
 python tools/aab-preflight/preflight.py build/demo/candidate.aab --expect build/demo/repeat-version.json --bundletool path/to/bundletool-all-1.18.1.jar --report-dir build/repeat-version
 ```
 
-第一次预检通过，版本 2 高于上个版本 1。第二次检查同一个包，版本 2 与配置里的上一版本重复，预检拦截。对照两个目录的 `report.md`，包的 SHA-256 一致。示例签名密钥在每次运行时临时生成。
+第一次预检通过，版本 3 高于上个版本 2。第二次检查同一个包，版本 3 与配置里的上一版本重复，预检拦截。对照两个目录的 `report.md`，包的 SHA-256 一致。示例签名密钥在每次运行时临时生成。
 
 在 [GitHub Actions 运行记录](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml) 中，成功的运行会留下 `aab-preflight-report` 和 `repeat-version-report` 两份报告附件。
 
