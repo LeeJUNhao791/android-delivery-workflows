@@ -1,0 +1,53 @@
+name: AAB release preflight
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Same-run artifact containing candidate.aab and release.json
+        required: true
+        type: string
+      report-name:
+        description: Artifact name for the Markdown and JSON reports
+        default: aab-preflight-report
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: preflight-tool
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: candidate
+      - name: Download and verify bundletool
+        run: bash preflight-tool/tools/aab-preflight/setup-bundletool.sh
+      - name: Check candidate
+        id: check
+        run: |
+          python preflight-tool/tools/aab-preflight/preflight.py candidate/candidate.aab \
+            --expect candidate/release.json --report-dir build/preflight
+      - name: Upload report
+        if: ${{ always() && (steps.check.outcome == 'success' || steps.check.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.report-name }}
+          path: build/preflight/
+          if-no-files-found: warn

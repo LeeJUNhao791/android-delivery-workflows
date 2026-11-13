@@ -1,0 +1,63 @@
+name: Android delivery CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  example:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build the Kotlin example
+        working-directory: examples/android-app
+        run: ./gradlew --no-daemon :app:bundleRelease
+      - name: Prepare demo candidate
+        run: python examples/android-app/prepare-demo.py
+      - name: Download and verify bundletool
+        run: bash tools/aab-preflight/setup-bundletool.sh
+      - name: Test signed, unsigned, modified and misconfigured candidates
+        run: python -B -m unittest discover -s tools/aab-preflight/tests -v
+      - name: Record the duplicate-version result
+        run: |
+          status=0
+          python tools/aab-preflight/preflight.py build/demo/candidate.aab \
+            --expect build/demo/repeat-version.json --report-dir build/repeat-version || status=$?
+          test "$status" -eq 1
+      - name: Upload rejection report
+        uses: actions/upload-artifact@v7
+        with:
+          name: repeat-version-report
+          path: build/repeat-version/
+          if-no-files-found: error
+      - name: Upload candidate for the reusable workflow
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo-candidate
+          path: |
+            build/demo/candidate.aab
+            build/demo/release.json
+          if-no-files-found: error
+
+  preflight:
+    needs: example
+    uses: ./.github/workflows/aab-preflight.yml
+    with:
+      artifact-name: demo-candidate
