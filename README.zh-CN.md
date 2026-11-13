@@ -1,8 +1,8 @@
 # Android 应用交付工作流
 
-[English](README.md) · [上手 SOP](docs/getting-started.zh-CN.md) · [CI 运行记录](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
+[English](README.md) · [上手 SOP](docs/getting-started.zh-CN.md) · [Android WebRTC 验收](docs/webrtc-native.zh-CN.md) · [CI 运行记录](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
 
-在上传前检查签名后的 Android App Bundle。本地和 GitHub Actions 使用同一套预检。
+上传前检查签名后的 Android App Bundle，也可以验证 Kotlin 或 Flutter 应用的 WebRTC 播放与断流恢复。WebRTC 教程附 Pixel 4 XL 实测结果。
 
 | 检查项 | 报告内容 |
 | --- | --- |

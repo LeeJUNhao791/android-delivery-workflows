@@ -1,8 +1,8 @@
 # Android Delivery Workflows
 
-[简体中文](README.zh-CN.md) · [Quick start](docs/getting-started.md) · [CI runs](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
+[简体中文](README.zh-CN.md) · [Quick start](docs/getting-started.md) · [WebRTC on Android](docs/webrtc-native.md) · [CI runs](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
 
-Check a signed Android App Bundle against your release expectations before upload. Run the same check locally or in GitHub Actions.
+Check a signed Android App Bundle before upload, or verify how a Kotlin or Flutter app plays and recovers a WebRTC stream. The WebRTC guide includes Pixel 4 XL results.
 
 | Check | What the report shows |
 | --- | --- |
