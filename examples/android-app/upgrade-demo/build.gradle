@@ -1,0 +1,28 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'io.github.leejunhao791.deliverydemo.upgrade'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.leejunhao791.deliverydemo.upgrade'
+        minSdk 23
+        targetSdk 35
+    }
+
+    flavorDimensions += 'upgradeStage'
+    productFlavors {
+        baseline {
+            dimension 'upgradeStage'
+            versionCode 1
+            versionName '1.0'
+        }
+        candidate {
+            dimension 'upgradeStage'
+            versionCode 2
+            versionName '2.0'
+        }
+    }
+}

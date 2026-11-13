@@ -1,0 +1,2 @@
+Performing Streamed Install
+adb: failed to install upgrade-demo-baseline-debug.apk: Failure [INSTALL_FAILED_VERSION_DOWNGRADE: Downgrade detected]

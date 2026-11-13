@@ -27,8 +27,12 @@ Open `build/preflight/report.md` for the review and `build/preflight/report.json
 
 The Kotlin app scans for a Windows BLE counter, reads its value, subscribes to updates, and retries after a disconnect. Follow the [BLE guide](docs/ble-recovery.md) and see the [hardware test record](docs/ble-evidence.md). The Pixel 4 XL restored its subscription and received a fresh notification in 11.643 seconds. Kalama's initial connection failed with GATT status 133.
 
+## ADB upgrade and install diagnosis
+
+Build two versions of a dedicated demo and check whether a local record survives an in-place APK upgrade. On Kalama (Android 15), the record survived the upgrade from version 1 to 2 and Android rejected the attempted downgrade. [ADB upgrade guide](docs/adb-upgrade.md)
+
 ## Roadmap
-- ADB diagnostics and an upgrade test that verifies local data survives
+
 - Weak-network WebRTC preview checks and a Flutter-to-Kotlin bridge example
 
 Related projects include [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) for SDK/JNI delivery, [AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) for cross-platform regression, and [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) for static 3D assets.
