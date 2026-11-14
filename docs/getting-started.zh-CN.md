@@ -50,3 +50,5 @@ release-preflight:
 ```
 
 在工作流附件里查看 `aab-preflight-report`。如果 AAB 检查失败，预检任务也会失败。依赖它的任务在 GitHub Actions 默认条件下只会在预检通过后运行。
+
+要使用运行摘要，请将上面的 `@v0.1.0` 换成包含摘要步骤的标签或提交。打开本次运行的 **Summary** 页即可查看 Markdown 报告。要在自己的仓库验证两种结果，先用正确的发布配置运行一次，再把 `previous_version_code` 改成候选包的 `versionCode` 并重跑。如果预检未生成报告，查看 **Check candidate** 步骤的日志。

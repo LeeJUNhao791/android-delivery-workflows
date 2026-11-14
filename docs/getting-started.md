@@ -50,3 +50,5 @@ release-preflight:
 ```
 
 Use the `aab-preflight-report` artifact to review results. An AAB check failure also fails the job. Jobs that depend on this preflight run only when it passes under the default GitHub Actions conditions.
+
+To use the run summary, replace `@v0.1.0` above with a tag or commit that includes the summary step. Open the workflow run's **Summary** tab to see the Markdown report. To try both outcomes in your repository, run once with the expected contract, then set `previous_version_code` equal to the candidate's `versionCode` and rerun. If the checker cannot generate a report, see the **Check candidate** log.

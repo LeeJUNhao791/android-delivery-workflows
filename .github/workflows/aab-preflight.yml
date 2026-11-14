@@ -44,6 +44,12 @@ jobs:
         run: |
           python preflight-tool/tools/aab-preflight/preflight.py candidate/candidate.aab \
             --expect candidate/release.json --report-dir build/preflight
+      - name: Show preflight report in run summary
+        if: ${{ always() && (steps.check.outcome == 'success' || steps.check.outcome == 'failure') }}
+        run: |
+          if [ -f build/preflight/report.md ]; then
+            cat build/preflight/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload report
         if: ${{ always() && (steps.check.outcome == 'success' || steps.check.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
