@@ -30,7 +30,7 @@ node run.mjs ../../build/webrtc-camera/desktop --camera
 
 浏览器选用默认摄像头，只采集视频。报告记录摄像头名称、浏览器选定的分辨率和帧率设置，以及与固定视频源相同的接收端和中继指标。测试只保存 JSON。
 
-要把电脑摄像头画面发到手机，可在 [Kotlin 或 Flutter 命令](webrtc-native.zh-CN.md#手机-wi-fi-恢复)后加 `--camera`。每轮使用独立的输出目录。
+要把电脑摄像头画面发到手机，可在下方 Android Chrome 命令或 [Kotlin、Flutter 命令](webrtc-native.zh-CN.md#手机-wi-fi-恢复)后加 `--camera`。每轮使用独立的输出目录。
 
 本次发送端是 Windows 上的 HP True Vision FHD Camera，浏览器选择了 640×360、20 fps。Android 接收端是 Pixel 4 XL（Android 11）。
 
@@ -39,8 +39,9 @@ node run.mjs ../../build/webrtc-camera/desktop --camera
 | 桌面 Chromium | 144 ms | 27.4 kbit/s | 2066 ms | — |
 | Kotlin 原生 | 480 ms | 27.4 kbit/s | 1949 ms | 7017 ms |
 | Flutter → Kotlin | 525 ms | 29.1 kbit/s | 2042 ms | 8866 ms |
+| Android Chrome | 508 ms | 29.0 kbit/s | 2115 ms | 2793 ms |
 
-两个 Android 入口都在手机拿回原 IPv4 地址后重建一次会话。实测摄像头流量远低于上限。需要复现带宽压力时，用上面的固定视频源。
+Kotlin 和 Flutter 都在手机拿回原 IPv4 地址后重建一次会话。手机和电脑连到同一 Wi-Fi 后，Android Chrome 用原会话恢复出画。实测摄像头流量远低于上限。需要复现带宽压力时，用上面的固定视频源。
 
 ## 查看 JSON 报告
 

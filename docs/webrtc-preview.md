@@ -30,7 +30,7 @@ node run.mjs ../../build/webrtc-camera/desktop --camera
 
 The browser selects its default camera and requests video only. The report records the camera label and browser-selected resolution and frame-rate setting. It also records the same receiver and relay metrics as the fixed-source run. The test does not save photos or video.
 
-To send the camera to an Android phone, add `--camera` to either [Kotlin or Flutter command](webrtc-native.md#phone-wi-fi-recovery). Use a separate output directory for each run. The camera stays on the sending computer.
+To send the camera to an Android phone, add `--camera` to the Android Chrome command below or either [Kotlin or Flutter command](webrtc-native.md#phone-wi-fi-recovery). Use a separate output directory for each run. The camera stays on the sending computer.
 
 On Windows, the HP True Vision FHD Camera ran at a browser-selected 640×360 and 20 fps. The Android receiver was a Pixel 4 XL on Android 11.
 
@@ -39,8 +39,9 @@ On Windows, the HP True Vision FHD Camera ran at a browser-selected 640×360 and
 | Desktop Chromium | 144 ms | 27.4 kbit/s | 2066 ms | — |
 | Kotlin native | 480 ms | 27.4 kbit/s | 1949 ms | 7017 ms |
 | Flutter → Kotlin | 525 ms | 29.1 kbit/s | 2042 ms | 8866 ms |
+| Android Chrome | 508 ms | 29.0 kbit/s | 2115 ms | 2793 ms |
 
-Both Android entries used one new session after the phone regained its original IPv4 address. The camera stream stayed well below the cap. Use the fixed source above to exercise the relay's bandwidth limit.
+Kotlin and Flutter each used one new session after the phone regained its original IPv4 address. Android Chrome resumed on the original session when the phone and computer shared the same Wi-Fi. The camera stream stayed well below the cap. Use the fixed source above to exercise the relay's bandwidth limit.
 
 ## Read the JSON report
 
