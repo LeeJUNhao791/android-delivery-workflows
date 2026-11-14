@@ -43,6 +43,23 @@ On Windows, the HP True Vision FHD Camera ran at a browser-selected 640×360 and
 
 Kotlin and Flutter each used one new session after the phone regained its original IPv4 address. Android Chrome resumed on the original session when the phone and computer shared the same Wi-Fi. The camera stream stayed well below the cap. Use the fixed source above to exercise the relay's bandwidth limit.
 
+### Kalama development board
+
+The Kotlin receiver ran on a Kalama development board with Android 15 (ARM64). The Windows sender used the same HP camera at 640×360 with a 20 fps capture setting. Build and install the [Kotlin debug APK](webrtc-native.md#kotlin-receiver), connect the board over USB ADB, and join the same Wi-Fi as the computer. Run from the repository root:
+
+```sh
+node tools/webrtc-preview/run.mjs build/webrtc-camera/kalama-playback --camera --native --host HOST_WIFI_IP --phone BOARD_WIFI_IP --serial SERIAL
+```
+
+For the Wi-Fi cycle, add `--cycle-wifi` and use a separate output directory.
+
+| Run | First frame | Forwarded rate under the 600 kbit/s cap | UDP relay recovery | Wi-Fi cycle |
+| --- | ---: | ---: | ---: | --- |
+| [Playback](evidence/webrtc-kalama-camera-playback.json) | 557 ms | 29.5 kbit/s | 2069 ms | — |
+| [Wi-Fi retest](evidence/webrtc-kalama-camera-wifi-retest.json) | 492 ms | 28.6 kbit/s | 2017 ms | Original IPv4 did not return within 30 s |
+
+Playback continued under the configured cap in both runs. The Wi-Fi cycle stopped video as expected, then timed out waiting for the board to rejoin. Device logs showed that Android had disabled automatic selection of this network after its internet check failed. After the saved network was selected manually, the separate playback run passed. WebRTC recovery after an automatic Wi-Fi rejoin remains unverified on this board.
+
 ## Read the JSON report
 
 Open `build/webrtc-preview/report.json`. The process exits with 0 on success and 1 on a failed scenario.

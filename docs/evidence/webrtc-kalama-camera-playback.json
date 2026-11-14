@@ -1,0 +1,44 @@
+{
+  "result": "PASS",
+  "browser": "158.0.8127.18",
+  "platform": "win32",
+  "receiver": "Kotlin native",
+  "source": {
+    "kind": "camera",
+    "label": "HP True Vision FHD Camera (30c9:009f)",
+    "width": 640,
+    "height": 360,
+    "framesPerSecond": 20
+  },
+  "scenarios": {
+    "normal": {
+      "durationMs": 4002,
+      "renderedFrames": 62,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 20920,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 36914
+    },
+    "limited": {
+      "senderLimitBitsPerSecond": 600000,
+      "durationMs": 4006,
+      "renderedFrames": 62,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 17702,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 29527
+    },
+    "outage": {
+      "durationMs": 4091,
+      "forwardedPackets": 0,
+      "outageDrops": 99,
+      "renderedFramesInFinalSecond": 0,
+      "recoveryMs": 2069
+    }
+  },
+  "firstFrameMs": 557
+}

@@ -43,6 +43,23 @@ node run.mjs ../../build/webrtc-camera/desktop --camera
 
 Kotlin 和 Flutter 都在手机拿回原 IPv4 地址后重建一次会话。手机和电脑连到同一 Wi-Fi 后，Android Chrome 用原会话恢复出画。实测摄像头流量远低于上限。需要复现带宽压力时，用上面的固定视频源。
 
+### Kalama 开发板
+
+Kotlin 接收器运行在 Android 15（ARM64）的 Kalama 开发板上。Windows 发送端沿用同一台 HP 摄像头，采集设置为 640×360、20 fps。按 [Kotlin 原生接收 SOP](webrtc-native.zh-CN.md#kotlin-原生接收)构建并安装调试 APK。开发板通过 USB 授权 ADB，并和电脑连到同一 Wi-Fi。从仓库根目录运行以下命令。
+
+```powershell
+node tools/webrtc-preview/run.mjs build/webrtc-camera/kalama-playback --camera --native --host HOST_WIFI_IP --phone BOARD_WIFI_IP --serial SERIAL
+```
+
+要测 Wi-Fi 开关，加上 `--cycle-wifi` 并使用独立的输出目录。
+
+| 运行 | 首帧 | 600 kbit/s 上限下的实测转发码率 | UDP 中继恢复 | Wi-Fi 开关 |
+| --- | ---: | ---: | ---: | --- |
+| [播放验收](evidence/webrtc-kalama-camera-playback.json) | 557 ms | 29.5 kbit/s | 2069 ms | — |
+| [Wi-Fi 复测](evidence/webrtc-kalama-camera-wifi-retest.json) | 492 ms | 28.6 kbit/s | 2017 ms | 30 秒内未拿回原 IPv4 |
+
+两轮都在设定上限后持续出画。Wi-Fi 复测确认断开时停画，随后在等待开发板重新入网时超时。设备日志显示，Android 在互联网验证失败后停用了该网络的自动选择。手动选回已保存的网络后，单独重跑的播放验收通过。开发板自动连回 Wi-Fi 后的 WebRTC 恢复仍待验证。
+
 ## 查看 JSON 报告
 
 打开 `build/webrtc-preview/report.json`。成功返回 0，场景失败返回 1。

@@ -1,0 +1,52 @@
+{
+  "result": "FAIL",
+  "browser": "158.0.8127.18",
+  "platform": "win32",
+  "receiver": "Kotlin native",
+  "source": {
+    "kind": "camera",
+    "label": "HP True Vision FHD Camera (30c9:009f)",
+    "width": 640,
+    "height": 360,
+    "framesPerSecond": 20
+  },
+  "scenarios": {
+    "normal": {
+      "durationMs": 4002,
+      "renderedFrames": 61,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 27209,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 48155
+    },
+    "limited": {
+      "senderLimitBitsPerSecond": 600000,
+      "durationMs": 4003,
+      "renderedFrames": 62,
+      "framesDropped": 0,
+      "packetsLost": 0,
+      "forwardedBytes": 17186,
+      "queueDrops": 0,
+      "outageDrops": 0,
+      "senderForwardedBitsPerSecond": 28632
+    },
+    "outage": {
+      "durationMs": 4103,
+      "forwardedPackets": 0,
+      "outageDrops": 105,
+      "renderedFramesInFinalSecond": 0,
+      "recoveryMs": 2017
+    },
+    "wifi": {
+      "startIceState": "connected",
+      "wifiDisconnected": true,
+      "framesInFinalSecond": 0,
+      "iceWhileOff": "connected",
+      "offMs": 4758
+    }
+  },
+  "firstFrameMs": 492,
+  "error": "Phone did not recover its original Wi-Fi IPv4 address"
+}
