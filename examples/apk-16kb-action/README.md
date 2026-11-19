@@ -1,5 +1,31 @@
 # APK 16 KB Action consumer example
 
+## Check a Gradle-built APK with a third-party SDK
+
+The [Android delivery workflow](../../.github/workflows/ci.yml) builds the
+WebRTC debug APK and runs `:app:exportDebugAarManifest` in the same Gradle
+invocation. The task exports external Maven AARs actually resolved on
+`:app:debugRuntimeClasspath`, including the WebRTC SDK. Its JSON paths
+refer to files on that runner.
+
+```yaml
+- uses: LeeJUNhao791/android-sdk-toolkit@v0.7.0
+  with:
+    apk: examples/android-app/app/build/outputs/apk/debug/app-debug.apk
+    aar-manifest: examples/android-app/app/build/reports/apk-16kb/resolved-aars.json
+```
+
+The original APK must pass. The workflow also repacks a temporary copy without
+the original ZIP padding. It verifies that ARM64 and x86-64 WebRTC library bytes
+remain identical, their ELF checks still pass, and the action rejects the ZIP
+layout with exit code 1. The report must list the resolved WebRTC dependency
+as the sole candidate for each of those libraries. The repacked copy is a
+static-check input. It is unsuitable for installation or distribution.
+Find both JSON reports in the `webrtc-apk-16kb-reports` artifact, and the
+tables in the job summary.
+
+## Test the Action contract with synthetic fixtures
+
 The [consumer workflow](../../.github/workflows/apk-16kb-action.yml) calls the
 Android SDK Toolkit Action by a fixed commit SHA from this separate repository.
 It runs on Ubuntu and Windows using synthetic APK/AAR archives. The fixtures

@@ -30,8 +30,47 @@ jobs:
       - name: Test BLE recovery and build the examples
         working-directory: examples/android-app
         run: |
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease \
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:exportDebugAarManifest :app:bundleRelease \
             :upgrade-demo:assembleBaselineDebug :upgrade-demo:assembleCandidateDebug
+      - name: Check the Gradle-built WebRTC APK
+        id: webrtc-apk
+        uses: LeeJUNhao791/android-sdk-toolkit@v0.7.0
+        with:
+          apk: examples/android-app/app/build/outputs/apk/debug/app-debug.apk
+          aar-manifest: examples/android-app/app/build/reports/apk-16kb/resolved-aars.json
+      - name: Prepare an intentionally unaligned ZIP control
+        run: |
+          python -B examples/apk-16kb-action/verify_webrtc.py prepare \
+            examples/android-app/app/build/outputs/apk/debug/app-debug.apk \
+            build/webrtc-16kb/unaligned-control.apk
+      - name: Check the unaligned control
+        id: webrtc-control
+        continue-on-error: true
+        uses: LeeJUNhao791/android-sdk-toolkit@v0.7.0
+        with:
+          apk: build/webrtc-16kb/unaligned-control.apk
+          aar-manifest: examples/android-app/app/build/reports/apk-16kb/resolved-aars.json
+      - name: Verify the action outcome and WebRTC AAR match
+        env:
+          CONTROL_OUTCOME: ${{ steps.webrtc-control.outcome }}
+          CONTROL_CODE: ${{ steps.webrtc-control.outputs.exit-code }}
+          PASS_REPORT: ${{ steps.webrtc-apk.outputs.report }}
+          CONTROL_REPORT: ${{ steps.webrtc-control.outputs.report }}
+        run: |
+          test "$CONTROL_OUTCOME" = failure
+          test "$CONTROL_CODE" = 1
+          python -B examples/apk-16kb-action/verify_webrtc.py verify \
+            "$PASS_REPORT" "$CONTROL_REPORT" \
+            examples/android-app/app/build/reports/apk-16kb/resolved-aars.json
+      - name: Save WebRTC APK alignment reports
+        if: always() && (steps.webrtc-apk.outputs.report != '' || steps.webrtc-control.outputs.report != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: webrtc-apk-16kb-reports
+          path: |
+            ${{ steps.webrtc-apk.outputs.report }}
+            ${{ steps.webrtc-control.outputs.report }}
+          if-no-files-found: error
       - name: Test ADB upgrade and diagnosis logic
         run: python -B -m unittest discover -s tools/adb-upgrade/tests -v
       - name: Prepare demo candidate
