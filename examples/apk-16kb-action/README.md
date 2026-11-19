@@ -25,7 +25,7 @@ actually resolved for that variant. See the
 [toolkit inputs and manifest format](https://github.com/LeeJUNhao791/android-sdk-toolkit#use-the-github-action).
 
 ```yaml
-- uses: LeeJUNhao791/android-sdk-toolkit@f722aa0c0d8dcbaca4fd832d39ee13a2b584b9f6
+- uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
   with:
     apk: app/build/outputs/apk/release/app-release.apk
     aar-manifest: build/resolved-aars.json
