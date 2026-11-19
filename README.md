@@ -23,6 +23,14 @@ Open `build/preflight/report.md` for the review and `build/preflight/report.json
 
 [Build the Kotlin demo, reproduce a duplicate version, or add the workflow to your repository](docs/getting-started.md).
 
+## APK 16 KB Action example
+
+The [cross-repository consumer](examples/apk-16kb-action/README.md) invokes
+Android SDK Toolkit by a fixed commit SHA on Ubuntu and Windows. Synthetic
+inputs verify pass, alignment failure, invalid input, and not-applicable
+outcomes, with single, multiple and unknown candidate AAR matches in the
+Actions summary and JSON reports.
+
 ## BLE counter example
 
 The Kotlin app scans for a Windows BLE counter, reads its value, subscribes to updates, and retries after a disconnect. Follow the [BLE guide](docs/ble-recovery.md) and see the [hardware test record](docs/ble-evidence.md). The Pixel 4 XL restored its subscription and received a fresh notification in 11.643 seconds. Kalama's initial connection failed with GATT status 133.

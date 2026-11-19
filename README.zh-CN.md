@@ -23,6 +23,13 @@ python tools/aab-preflight/preflight.py candidate.aab --expect release.json --bu
 
 [构建 Kotlin 示例、复现重复版本，或把工作流接到自己的仓库](docs/getting-started.zh-CN.md)。
 
+## APK 16 KB Action 示例
+
+[跨仓库调用示例](examples/apk-16kb-action/README.md)固定 Android SDK Toolkit
+的提交 SHA，在 Ubuntu 和 Windows 上调用 Action。合成输入验证通过、对齐失败、
+输入无效及无适用库四种结果，并在 Actions 摘要和 JSON 报告中展示单一候选、
+多个候选和未知 AAR 来源。
+
 ## BLE 计数器示例
 
 Kotlin 示例扫描 Windows BLE 外设，读取计数、订阅通知，并在断连后重试。查看 [BLE 验收 SOP](docs/ble-recovery.zh-CN.md)和[真机记录](docs/ble-evidence.md)。Pixel 4 XL 自动恢复订阅并在 11.643 秒内收到新通知。Kalama 首次连接返回 GATT 133。

@@ -1,0 +1,95 @@
+name: APK 16 KB Action consumer
+
+on:
+  push:
+    branches: [main, codex/verify-apk-16kb-action]
+    paths:
+      - '.github/workflows/apk-16kb-action.yml'
+      - 'examples/apk-16kb-action/**'
+  pull_request:
+    paths:
+      - '.github/workflows/apk-16kb-action.yml'
+      - 'examples/apk-16kb-action/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumer:
+    name: Remote Action (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Get the toolkit's synthetic example generator
+        uses: actions/checkout@v7
+        with:
+          repository: LeeJUNhao791/android-sdk-toolkit
+          ref: f0e53894757a9c339f762f1f09a297b5718c4c1d
+          path: toolkit-fixtures
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare synthetic APKs and AARs
+        run: python -B examples/apk-16kb-action/fixtures.py toolkit-fixtures "build/16kb fixtures"
+      - name: Passing APK
+        id: passing
+        uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
+        with:
+          apk: build/16kb fixtures/passing app.apk
+      - name: Failing APK with all three candidate states
+        id: failing
+        continue-on-error: true
+        uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
+        with:
+          apk: build/16kb fixtures/app.apk
+          aar-manifest: build/16kb fixtures/resolved-aars.json
+      - name: Invalid APK
+        id: invalid
+        continue-on-error: true
+        uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
+        with:
+          apk: build/16kb fixtures/invalid.apk
+      - name: APK without native libraries
+        id: no-native
+        uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
+        with:
+          apk: build/16kb fixtures/no-native.apk
+      - name: Verify real step outcomes and JSON reports
+        env:
+          PASS_STATUS: ${{ steps.passing.outputs.status }}
+          PASS_CODE: ${{ steps.passing.outputs.exit-code }}
+          PASS_OUTCOME: ${{ steps.passing.outcome }}
+          PASS_REPORT: ${{ steps.passing.outputs.report }}
+          FAIL_STATUS: ${{ steps.failing.outputs.status }}
+          FAIL_CODE: ${{ steps.failing.outputs.exit-code }}
+          FAIL_OUTCOME: ${{ steps.failing.outcome }}
+          FAIL_REPORT: ${{ steps.failing.outputs.report }}
+          INVALID_STATUS: ${{ steps.invalid.outputs.status }}
+          INVALID_CODE: ${{ steps.invalid.outputs.exit-code }}
+          INVALID_OUTCOME: ${{ steps.invalid.outcome }}
+          INVALID_REPORT: ${{ steps.invalid.outputs.report }}
+          NO_NATIVE_STATUS: ${{ steps.no-native.outputs.status }}
+          NO_NATIVE_CODE: ${{ steps.no-native.outputs.exit-code }}
+          NO_NATIVE_OUTCOME: ${{ steps.no-native.outcome }}
+          NO_NATIVE_REPORT: ${{ steps.no-native.outputs.report }}
+        run: python -B examples/apk-16kb-action/verify.py
+      - name: Save consumer reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apk-16kb-consumer-${{ matrix.os }}
+          path: |
+            ${{ steps.passing.outputs.report }}
+            ${{ steps.failing.outputs.report }}
+            ${{ steps.invalid.outputs.report }}
+            ${{ steps.no-native.outputs.report }}
+          if-no-files-found: error
