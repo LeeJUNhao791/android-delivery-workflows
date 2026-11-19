@@ -1,0 +1,66 @@
+name: MediaPipe APK 16 KB validation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mediapipe-apk-16kb.yml'
+      - 'examples/apk-16kb-action/export-debug-aars.init.gradle'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mediapipe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check out the pinned MediaPipe sample
+        uses: actions/checkout@v7
+        with:
+          repository: google-ai-edge/mediapipe-samples
+          ref: 46d60d66baf21ae91977c488ea0875f0e13c4d2b
+          path: mediapipe-samples
+          sparse-checkout: |
+            examples/image_classification/android
+            android-common
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0"
+      - name: Build the APK and export its resolved runtime AARs
+        working-directory: mediapipe-samples/examples/image_classification/android
+        run: |
+          ./gradlew --no-daemon --init-script "$GITHUB_WORKSPACE/examples/apk-16kb-action/export-debug-aars.init.gradle" \
+            :app:verifyModels :app:assembleDebug :app:exportDebugAarManifest :android-common:testing:testDebugUnitTest
+      - name: Check the MediaPipe APK
+        id: alignment
+        uses: LeeJUNhao791/android-sdk-toolkit@v0.7.0
+        with:
+          apk: mediapipe-samples/examples/image_classification/android/app/build/outputs/apk/debug/app-debug.apk
+          aar-manifest: mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/resolved-aars.json
+      - name: Require a passing result
+        env:
+          STATUS: ${{ steps.alignment.outputs.status }}
+          CHECKER_EXIT: ${{ steps.alignment.outputs.exit-code }}
+          REPORT: ${{ steps.alignment.outputs.report }}
+        run: |
+          test "$STATUS" = pass
+          test "$CHECKER_EXIT" = 0
+          test -s "$REPORT"
+      - name: Save the alignment report and resolved AAR manifest
+        if: always() && steps.alignment.outputs.report != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: mediapipe-apk-16kb-report
+          path: |
+            ${{ steps.alignment.outputs.report }}
+            mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/resolved-aars.json
+          if-no-files-found: error

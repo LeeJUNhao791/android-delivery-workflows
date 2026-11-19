@@ -24,6 +24,24 @@ static-check input. It is unsuitable for installation or distribution.
 Find both JSON reports in the `webrtc-apk-16kb-reports` artifact, and the
 tables in the job summary.
 
+## Check the upstream MediaPipe image classification APK
+
+The [MediaPipe workflow](../../.github/workflows/mediapipe-apk-16kb.yml) uses the
+[official Android sample](https://github.com/google-ai-edge/mediapipe-samples/tree/46d60d66baf21ae91977c488ea0875f0e13c4d2b/examples/image_classification/android)
+at a fixed commit. It builds the original Debug APK and exports the resolved
+external AARs from `:app:debugRuntimeClasspath` using a
+[Gradle init script](export-debug-aars.init.gradle). Invoke this command from
+the sample's Android directory with JDK 17 and Android SDK 36.
+
+```sh
+./gradlew --no-daemon --init-script /path/to/export-debug-aars.init.gradle \
+  :app:verifyModels :app:assembleDebug :app:exportDebugAarManifest
+```
+
+Use the generated APK and manifest in the same job. The workflow requires
+`pass` and saves both JSON files as `mediapipe-apk-16kb-report`. This is a
+static alignment check of the Debug APK.
+
 ## Test the Action contract with synthetic fixtures
 
 The [consumer workflow](../../.github/workflows/apk-16kb-action.yml) calls the

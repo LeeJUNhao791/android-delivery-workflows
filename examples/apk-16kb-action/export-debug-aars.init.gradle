@@ -1,0 +1,30 @@
+import groovy.json.JsonOutput
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+
+gradle.beforeProject { project ->
+    if (project.path == ':app') {
+        project.tasks.register('exportDebugAarManifest') {
+            doLast {
+                def runtime = project.configurations.getByName('debugRuntimeClasspath')
+                def external = runtime.incoming.artifactView {
+                    componentFilter { component -> component instanceof ModuleComponentIdentifier }
+                }
+                def artifacts = external.artifacts.artifacts.findAll {
+                    it.file.name.endsWith('.aar')
+                }.collect {
+                    def module = it.id.componentIdentifier
+                    [coordinate: "${module.group}:${module.module}:${module.version}".toString(),
+                     path: it.file.absolutePath]
+                }.sort { it.coordinate }
+
+                def manifest = project.layout.buildDirectory.file('reports/apk-16kb/resolved-aars.json').get().asFile
+                manifest.parentFile.mkdirs()
+                manifest.setText(JsonOutput.prettyPrint(JsonOutput.toJson([
+                    consumer_configuration: "${project.path}:${runtime.name}".toString(),
+                    artifacts: artifacts
+                ])) + '\n', 'UTF-8')
+                logger.lifecycle("Exported ${artifacts.size()} resolved AARs")
+            }
+        }
+    }
+}
