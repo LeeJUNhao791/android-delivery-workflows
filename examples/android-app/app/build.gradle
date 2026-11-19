@@ -1,3 +1,6 @@
+import groovy.json.JsonOutput
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android' version '2.2.10'
@@ -23,4 +26,24 @@ kotlin {
 dependencies {
     debugImplementation 'io.github.webrtc-sdk:android:150.7871.01'
     testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.register('exportDebugAarManifest') {
+    doLast {
+        def runtime = configurations.getByName('debugRuntimeClasspath')
+        def artifacts = runtime.incoming.artifacts.artifacts.findAll {
+            it.id.componentIdentifier instanceof ModuleComponentIdentifier && it.file.name.endsWith('.aar')
+        }.collect {
+            def module = it.id.componentIdentifier
+            [coordinate: "${module.group}:${module.module}:${module.version}".toString(),
+             path: it.file.absolutePath]
+        }.sort { it.coordinate }
+
+        def manifest = layout.buildDirectory.file('reports/apk-16kb/resolved-aars.json').get().asFile
+        manifest.parentFile.mkdirs()
+        manifest.setText(JsonOutput.prettyPrint(JsonOutput.toJson([
+            consumer_configuration: "${project.path}:${runtime.name}".toString(),
+            artifacts: artifacts
+        ])) + '\n', 'UTF-8')
+    }
 }
