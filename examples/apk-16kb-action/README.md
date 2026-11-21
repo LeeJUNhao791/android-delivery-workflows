@@ -26,21 +26,38 @@ tables in the job summary.
 
 ## Check the upstream MediaPipe image classification APK
 
-The [MediaPipe workflow](../../.github/workflows/mediapipe-apk-16kb.yml) uses the
+The [MediaPipe workflow](../../.github/workflows/mediapipe-apk-16kb.yml) builds the
 [official Android sample](https://github.com/google-ai-edge/mediapipe-samples/tree/46d60d66baf21ae91977c488ea0875f0e13c4d2b/examples/image_classification/android)
-at a fixed commit. It builds the original Debug APK and exports the resolved
-external AARs from `:app:debugRuntimeClasspath` using a
-[Gradle init script](export-debug-aars.init.gradle). Invoke this command from
-the sample's Android directory with JDK 17 and Android SDK 36.
+at a fixed commit. Use the [Toolkit v0.8.0 Gradle exporter](https://github.com/LeeJUNhao791/android-sdk-toolkit/blob/v0.8.0/skills/apk-page-size-check/examples/export-debug-native-provenance.init.gradle)
+with JDK 17, Android SDK 36, and NDK `27.0.12077973`. The exporter builds one
+unflavored Debug APK from `:app` and writes `resolved-aars.json` and
+`native-provenance.json` from the same build.
+
+From the sample's Android directory, set `TOOLKIT` to the absolute path of a
+Toolkit `v0.8.0` checkout and run the export.
 
 ```sh
-./gradlew --no-daemon --init-script /path/to/export-debug-aars.init.gradle \
-  :app:verifyModels :app:assembleDebug :app:exportDebugAarManifest
+./gradlew --no-daemon --no-configuration-cache --init-script \
+  "$TOOLKIT/skills/apk-page-size-check/examples/export-debug-native-provenance.init.gradle" \
+  :app:verifyModels :app:exportDebugNativeProvenance
 ```
 
-Use the generated APK and manifest in the same job. The workflow requires
-`pass` and saves both JSON files as `mediapipe-apk-16kb-report`. This is a
-static alignment check of the Debug APK.
+Pass the APK and both JSON files to the Action in the same job. The paths
+below are relative to the workspace used by the example workflow.
+
+```yaml
+- uses: LeeJUNhao791/android-sdk-toolkit@v0.8.0
+  with:
+    apk: mediapipe-samples/examples/image_classification/android/app/build/outputs/apk/debug/app-debug.apk
+    aar-manifest: mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/resolved-aars.json
+    native-provenance: mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/native-provenance.json
+```
+
+The workflow checks 16 KB alignment and verifies that all four
+`libmediapipe_tasks_jni.so` ABI entries trace to
+`com.google.mediapipe:tasks-core:1.2.2`. Download the Action report and both
+Gradle JSON files from the `mediapipe-apk-16kb-report` artifact.
+See the [cross-repository MediaPipe CI run](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/runs/44912758103).
 
 ## Test the Action contract with synthetic fixtures
 

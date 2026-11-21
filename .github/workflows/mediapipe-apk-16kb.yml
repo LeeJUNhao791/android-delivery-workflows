@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/mediapipe-apk-16kb.yml'
-      - 'examples/apk-16kb-action/export-debug-aars.init.gradle'
   workflow_dispatch:
 
 permissions:
@@ -14,9 +13,19 @@ jobs:
   mediapipe:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      SAMPLE: mediapipe-samples/examples/image_classification/android
+      EVIDENCE: mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
+      - name: Check out the Toolkit v0.8.0 Gradle exporter
+        uses: actions/checkout@v7
+        with:
+          repository: LeeJUNhao791/android-sdk-toolkit
+          ref: v0.8.0
+          path: toolkit
           persist-credentials: false
       - name: Check out the pinned MediaPipe sample
         uses: actions/checkout@v7
@@ -32,21 +41,24 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Android SDK
+      - name: Install Android SDK and NDK
         run: |
-          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0"
-      - name: Build the APK and export its resolved runtime AARs
-        working-directory: mediapipe-samples/examples/image_classification/android
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install \
+            "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"
+      - name: Build the APK and export its native library provenance
+        working-directory: ${{ env.SAMPLE }}
         run: |
-          ./gradlew --no-daemon --init-script "$GITHUB_WORKSPACE/examples/apk-16kb-action/export-debug-aars.init.gradle" \
-            :app:verifyModels :app:assembleDebug :app:exportDebugAarManifest :android-common:testing:testDebugUnitTest
+          ./gradlew --no-daemon --no-configuration-cache --init-script \
+            "$GITHUB_WORKSPACE/toolkit/skills/apk-page-size-check/examples/export-debug-native-provenance.init.gradle" \
+            :app:verifyModels :app:exportDebugNativeProvenance :android-common:testing:testDebugUnitTest
       - name: Check the MediaPipe APK
         id: alignment
-        uses: LeeJUNhao791/android-sdk-toolkit@v0.7.0
+        uses: LeeJUNhao791/android-sdk-toolkit@v0.8.0
         with:
-          apk: mediapipe-samples/examples/image_classification/android/app/build/outputs/apk/debug/app-debug.apk
-          aar-manifest: mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/resolved-aars.json
-      - name: Require a passing result
+          apk: ${{ env.SAMPLE }}/app/build/outputs/apk/debug/app-debug.apk
+          aar-manifest: ${{ env.EVIDENCE }}/resolved-aars.json
+          native-provenance: ${{ env.EVIDENCE }}/native-provenance.json
+      - name: Verify alignment and AAR candidates for all four ABIs
         env:
           STATUS: ${{ steps.alignment.outputs.status }}
           CHECKER_EXIT: ${{ steps.alignment.outputs.exit-code }}
@@ -55,12 +67,33 @@ jobs:
           test "$STATUS" = pass
           test "$CHECKER_EXIT" = 0
           test -s "$REPORT"
-      - name: Save the alignment report and resolved AAR manifest
+
+          python -B - "$REPORT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          assert report["status"] == "pass", report["status"]
+          provenance = report["native_provenance"]
+          assert (provenance["status"], provenance["variant"]) == ("verified", "debug"), provenance
+          libraries = {row["entry"]: row for row in report["libraries"]}
+          for abi in ("arm64-v8a", "armeabi-v7a", "x86", "x86_64"):
+              origin = libraries[f"lib/{abi}/libmediapipe_tasks_jni.so"]["origin"]
+              assert (origin["status"], origin["method"]) == ("single_candidate", "gradle_strip_chain"), origin
+              coordinates = [candidate["coordinate"] for candidate in origin["candidates"]]
+              assert coordinates == ["com.google.mediapipe:tasks-core:1.2.2"], (abi, coordinates)
+              print(f"{abi}: {coordinates[0]}")
+          PY
+          "${ANDROID_HOME}/build-tools/36.0.0/zipalign" -c -P 16 4 \
+            "$SAMPLE/app/build/outputs/apk/debug/app-debug.apk"
+      - name: Save the alignment report and Gradle evidence
         if: always() && steps.alignment.outputs.report != ''
         uses: actions/upload-artifact@v7
         with:
           name: mediapipe-apk-16kb-report
           path: |
             ${{ steps.alignment.outputs.report }}
-            mediapipe-samples/examples/image_classification/android/app/build/reports/apk-16kb/resolved-aars.json
+            ${{ env.EVIDENCE }}/resolved-aars.json
+            ${{ env.EVIDENCE }}/native-provenance.json
           if-no-files-found: error
