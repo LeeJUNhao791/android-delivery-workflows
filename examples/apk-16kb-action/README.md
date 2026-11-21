@@ -57,6 +57,7 @@ The workflow checks 16 KB alignment and verifies that all four
 `libmediapipe_tasks_jni.so` ABI entries trace to
 `com.google.mediapipe:tasks-core:1.2.2`. Download the Action report and both
 Gradle JSON files from the `mediapipe-apk-16kb-report` artifact.
+See the [cross-repository MediaPipe CI run](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/runs/44912758103).
 
 ## Test the Action contract with synthetic fixtures
 
