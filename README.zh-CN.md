@@ -1,8 +1,10 @@
 # Android 应用交付工作流
 
-[English](README.md) · [上手 SOP](docs/getting-started.zh-CN.md) · [Android WebRTC 验收](docs/webrtc-native.zh-CN.md) · [摄像头实测](docs/webrtc-preview.zh-CN.md#用电脑摄像头测试) · [v0.7.0 发布说明](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/tag/v0.7.0)
+[English](README.md) · [上手 SOP](docs/getting-started.zh-CN.md) · [Android WebRTC 验收](docs/webrtc-native.zh-CN.md) · [摄像头实测](docs/webrtc-preview.zh-CN.md#用电脑摄像头测试) · [最新发布说明](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/latest)
 
 [![main 分支 Android 交付 CI](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
+[![最新版本](https://img.shields.io/github/v/release/LeeJUNhao791/android-delivery-workflows)](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/latest)
+[![MIT 许可证](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 上传前检查签名后的 Android App Bundle，也可以验证 Kotlin 或 Flutter 应用的 WebRTC 播放与断流恢复。WebRTC 教程附 Pixel 4 XL 实测结果。
 
@@ -50,4 +52,4 @@ Kotlin 示例扫描 Windows BLE 外设，读取计数、订阅通知，并在断
 
 相关项目包括 [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) 的 SDK/JNI 交付、[AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) 的跨端回归，以及 [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) 的静态 3D 尺寸检查。
 
-[MIT 许可证](LICENSE)
+[贡献指南](CONTRIBUTING.md) · [MIT 许可证](LICENSE)
