@@ -1,8 +1,10 @@
 # Android Delivery Workflows
 
-[简体中文](README.zh-CN.md) · [Quick start](docs/getting-started.md) · [WebRTC on Android](docs/webrtc-native.md) · [Live camera test](docs/webrtc-preview.md#run-with-a-desktop-camera) · [Release v0.7.0](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/tag/v0.7.0)
+[简体中文](README.zh-CN.md) · [Quick start](docs/getting-started.md) · [WebRTC on Android](docs/webrtc-native.md) · [Live camera test](docs/webrtc-preview.md#run-with-a-desktop-camera) · [Latest release](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/latest)
 
 [![Android delivery CI on main](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LeeJUNhao791/android-delivery-workflows/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/LeeJUNhao791/android-delivery-workflows)](https://github.com/LeeJUNhao791/android-delivery-workflows/releases/latest)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Check a signed Android App Bundle before upload, or verify how a Kotlin or Flutter app plays and recovers a WebRTC stream. The WebRTC guide includes Pixel 4 XL results.
 
@@ -51,4 +53,4 @@ Run the same WebRTC scenarios on the Kotlin debug receiver and launch it from a 
 
 Related projects include [Android SDK Toolkit](https://github.com/LeeJUNhao791/android-sdk-toolkit) for SDK/JNI delivery, [AI App Regression](https://github.com/LeeJUNhao791/ai-app-regression) for cross-platform regression, and [GLB Dimension Check](https://github.com/LeeJUNhao791/glb-dimension-check) for static 3D assets.
 
-[MIT License](LICENSE)
+[Contributing](CONTRIBUTING.md) · [MIT License](LICENSE)
