@@ -44,17 +44,17 @@ release-preflight:
   needs: build
   permissions:
     contents: read
-  uses: LeeJUNhao791/android-delivery-workflows/.github/workflows/aab-preflight.yml@v0.1.0
+  uses: LeeJUNhao791/android-delivery-workflows/.github/workflows/aab-preflight.yml@v0.8.0
   with:
     artifact-name: release-candidate
 ```
 
 Use the `aab-preflight-report` artifact to review results. An AAB check failure also fails the job. Jobs that depend on this preflight run only when it passes under the default GitHub Actions conditions.
 
-To use the run summary, replace `@v0.1.0` above with a tag or commit that includes the summary step. Open the workflow run's **Summary** tab to see the Markdown report. To try both outcomes in your repository, run once with the expected contract, then set `previous_version_code` equal to the candidate's `versionCode` and rerun. If the checker cannot generate a report, see the **Check candidate** log.
+Open the workflow run's **Summary** tab to see the Markdown report. To try both outcomes in your repository, run once with the expected contract, then set `previous_version_code` equal to the candidate's `versionCode` and rerun. If the checker cannot generate a report, see the **Check candidate** log.
 
 ### Opt in to the ARM64 split alignment check
 
-Use a workflow commit or tag that supports `check-arm64-16kb` and add `check-arm64-16kb: true` under `with`. The input defaults to `false`. After the release metadata passes, bundletool generates APKs for a synthetic ARM64/API 35 target with 480 dpi and the `en-US` locale. The workflow checks the ELF and ZIP alignment of each generated APK. A failed or invalid APK check fails the job. APKs without eligible native libraries are recorded as `not_applicable`.
+Add `check-arm64-16kb: true` under `with` in the example above. The input defaults to `false`. After the release metadata passes, bundletool generates APKs for a synthetic ARM64/API 35 target with 480 dpi and the `en-US` locale. The workflow checks the ELF and ZIP alignment of each generated APK. A failed or invalid APK check fails the job. APKs without eligible native libraries are recorded as `not_applicable`.
 
 Download `arm64-16kb/summary.json` and the per-APK JSON reports from the same preflight artifact, including after failure. The job logs name the affected APKs and shared libraries. The check covers static alignment for this bundletool target. Device compatibility and Google Play delivery require separate verification.
