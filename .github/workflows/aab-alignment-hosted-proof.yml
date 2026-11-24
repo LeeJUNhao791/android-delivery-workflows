@@ -1,0 +1,116 @@
+name: AAB 16 KiB hosted proof
+
+on:
+  push:
+    branches: [codex/aab-arm64-16kb-hosted-proof]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: LeeJUNhao791/android-sdk-toolkit
+          ref: dbd640e7b4ccd8a87beb8ca1ed21be3b301b979c
+          path: proof-toolkit
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 45345163972
+          name: demo-candidate
+          path: build/hosted-alignment-proof/input
+      - run: bash tools/aab-preflight/setup-bundletool.sh
+      - run: python -B tools/aab-preflight/tests/build-hosted-controls.py proof-toolkit
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-16k-control
+          path: build/hosted-alignment-proof/16K/
+          if-no-files-found: error
+          retention-days: 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-4k-control
+          path: build/hosted-alignment-proof/4K/
+          if-no-files-found: error
+          retention-days: 1
+
+  preflight-16k:
+    needs: controls
+    uses: LeeJUNhao791/android-delivery-workflows/.github/workflows/aab-preflight.yml@96aa83e2bf66802977863e79cca96b1662756350
+    with:
+      artifact-name: signed-16k-control
+      report-name: signed-16k-report
+      check-arm64-16kb: true
+
+  preflight-4k:
+    needs: controls
+    uses: LeeJUNhao791/android-delivery-workflows/.github/workflows/aab-preflight.yml@96aa83e2bf66802977863e79cca96b1662756350
+    with:
+      artifact-name: signed-4k-control
+      report-name: signed-4k-report
+      check-arm64-16kb: true
+
+  verify:
+    needs: [preflight-16k, preflight-4k]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require successful positive and failed negative
+        env:
+          POSITIVE: ${{ needs.preflight-16k.result }}
+          NEGATIVE: ${{ needs.preflight-4k.result }}
+        run: |
+          test "$POSITIVE" = success
+          test "$NEGATIVE" = failure
+      - uses: actions/download-artifact@v8
+        with:
+          name: signed-16k-report
+          path: reports/16k
+      - uses: actions/download-artifact@v8
+        with:
+          name: signed-4k-report
+          path: reports/4k
+      - name: Verify both reports and the ZIP-only failure
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for case, result, status, offset in [
+              ("16k", "PASS", "pass", 16384), ("4k", "FAIL", "fail", 4096),
+          ]:
+              root = Path("reports") / case
+              split_dir = root / "arm64-16kb"
+              assert json.loads((root / "report.json").read_bytes())["result"] == "PASS"
+              summary = json.loads((split_dir / "summary.json").read_bytes())
+              assert summary["result"] == result
+              native = next(split for split in summary["splits"] if split["apk"].endswith("arm64_v8a.apk"))
+              master = next(split for split in summary["splits"] if split["apk"].endswith("base-master.apk"))
+              assert master["status"] == "not_applicable" and master["exit_code"] == 3
+              assert (split_dir / master["report"]).is_file()
+              assert native["status"] == status
+              report = json.loads((split_dir / native["report"]).read_bytes())
+              assert report["libraries"] == [{
+                  "entry": "lib/arm64-v8a/libaligned.so", "abi": "arm64-v8a",
+                  "elf": "pass", "zip": status, "load_issues": [], "zip_data_offset": offset,
+              }]
+              assert all(path.suffix in {".json", ".md"} for path in root.rglob("*") if path.is_file())
+              print(case, result, native["apk"], "ZIP offset", offset)
+          PY
