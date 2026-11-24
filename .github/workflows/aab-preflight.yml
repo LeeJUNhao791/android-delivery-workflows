@@ -11,6 +11,10 @@ on:
         description: Artifact name for the Markdown and JSON reports
         default: aab-preflight-report
         type: string
+      check-arm64-16kb:
+        description: Check 16 KiB ELF and ZIP alignment for ARM64/API 35 APKs
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -44,11 +48,28 @@ jobs:
         run: |
           python preflight-tool/tools/aab-preflight/preflight.py candidate/candidate.aab \
             --expect candidate/release.json --report-dir build/preflight
+      - name: Check out Android SDK Toolkit
+        if: ${{ inputs.check-arm64-16kb && steps.check.outcome == 'success' }}
+        uses: actions/checkout@v7
+        with:
+          repository: LeeJUNhao791/android-sdk-toolkit
+          ref: dbd640e7b4ccd8a87beb8ca1ed21be3b301b979c # v0.8.0
+          path: split-check-toolkit
+          persist-credentials: false
+      - name: Check ARM64 split alignment
+        if: ${{ !cancelled() && inputs.check-arm64-16kb && steps.check.outcome == 'success' }}
+        run: |
+          python preflight-tool/tools/aab-preflight/check_splits.py candidate/candidate.aab \
+            --checker split-check-toolkit/skills/apk-page-size-check/scripts/check_apk.py \
+            --report-dir build/preflight
       - name: Show preflight report in run summary
         if: ${{ always() && (steps.check.outcome == 'success' || steps.check.outcome == 'failure') }}
         run: |
           if [ -f build/preflight/report.md ]; then
             cat build/preflight/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f build/preflight/arm64-16kb/summary.md ]; then
+            cat build/preflight/arm64-16kb/summary.md >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Upload report
         if: ${{ always() && (steps.check.outcome == 'success' || steps.check.outcome == 'failure') }}
