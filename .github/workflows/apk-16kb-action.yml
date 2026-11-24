@@ -52,6 +52,12 @@ jobs:
         with:
           apk: build/16kb fixtures/app.apk
           aar-manifest: build/16kb fixtures/resolved-aars.json
+      - name: APK with aligned ELF and unaligned ZIP
+        id: zip-only
+        continue-on-error: true
+        uses: LeeJUNhao791/android-sdk-toolkit@f0e53894757a9c339f762f1f09a297b5718c4c1d
+        with:
+          apk: build/16kb fixtures/zip-only.apk
       - name: Invalid APK
         id: invalid
         continue-on-error: true
@@ -73,6 +79,10 @@ jobs:
           FAIL_CODE: ${{ steps.failing.outputs.exit-code }}
           FAIL_OUTCOME: ${{ steps.failing.outcome }}
           FAIL_REPORT: ${{ steps.failing.outputs.report }}
+          ZIP_ONLY_STATUS: ${{ steps.zip-only.outputs.status }}
+          ZIP_ONLY_CODE: ${{ steps.zip-only.outputs.exit-code }}
+          ZIP_ONLY_OUTCOME: ${{ steps.zip-only.outcome }}
+          ZIP_ONLY_REPORT: ${{ steps.zip-only.outputs.report }}
           INVALID_STATUS: ${{ steps.invalid.outputs.status }}
           INVALID_CODE: ${{ steps.invalid.outputs.exit-code }}
           INVALID_OUTCOME: ${{ steps.invalid.outcome }}
@@ -90,6 +100,7 @@ jobs:
           path: |
             ${{ steps.passing.outputs.report }}
             ${{ steps.failing.outputs.report }}
+            ${{ steps.zip-only.outputs.report }}
             ${{ steps.invalid.outputs.report }}
             ${{ steps.no-native.outputs.report }}
           if-no-files-found: error

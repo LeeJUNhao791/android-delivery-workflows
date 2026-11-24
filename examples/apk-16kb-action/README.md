@@ -70,11 +70,14 @@ exercise the static checker and do not represent installable Android apps.
 | --- | --- | --- |
 | Aligned, compressed ARM64 ELF | success | `pass`, exit 0 |
 | Misaligned ELF with AAR list | failure | `fail`, exit 1 |
+| Aligned ARM64 ELF stored at an unaligned ZIP offset | failure | `fail`, exit 1 |
 | Invalid APK | failure | `invalid`, exit 2 |
 | APK with no native libraries | success | `not_applicable`, exit 3 |
 
-The failing case must show `single_candidate` for `libunique.so`,
+The case with an AAR list must show `single_candidate` for `libunique.so`,
 `multiple_candidates` for `libshared.so`, and `unknown` for `libchanged.so`.
+The ZIP-only case reuses the passing sample's ELF bytes and must report
+`elf: pass`, `zip: fail`, and the unaligned data offset from the ZIP header.
 Only expected failure steps use `continue-on-error`. The next step asserts
 their actual outcomes and all JSON outputs, so a broken or always-passing
 Action fails the consumer workflow. JSON reports are retained as artifacts

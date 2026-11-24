@@ -4,7 +4,7 @@ import runpy
 import struct
 import sys
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 
 toolkit, output = map(Path, sys.argv[1:])
@@ -17,6 +17,10 @@ with ZipFile(output / "app.apk") as source:
     aligned = bytearray(source.read("lib/arm64-v8a/libunique.so"))
 struct.pack_into("<Q", aligned, 112, 16384)  # ELF64 PT_LOAD p_align
 with ZipFile(output / "passing app.apk", "w", compression=ZIP_DEFLATED) as archive:
+    archive.writestr("AndroidManifest.xml", "synthetic fixture manifest")
+    archive.writestr("lib/arm64-v8a/libaligned.so", aligned)
+# Store the same ELF bytes without ZIP padding to exercise the ZIP check.
+with ZipFile(output / "zip-only.apk", "w", compression=ZIP_STORED) as archive:
     archive.writestr("AndroidManifest.xml", "synthetic fixture manifest")
     archive.writestr("lib/arm64-v8a/libaligned.so", aligned)
 with ZipFile(output / "no-native.apk", "w") as archive:
