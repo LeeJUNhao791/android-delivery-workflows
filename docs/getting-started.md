@@ -58,3 +58,13 @@ Open the workflow run's **Summary** tab to see the Markdown report. To try both 
 Add `check-arm64-16kb: true` under `with` in the example above. The input defaults to `false`. After the release metadata passes, bundletool generates APKs for a synthetic ARM64/API 35 target with 480 dpi and the `en-US` locale. The workflow checks the ELF and ZIP alignment of each generated APK. A failed or invalid APK check fails the job. APKs without eligible native libraries are recorded as `not_applicable`.
 
 Download `arm64-16kb/summary.json` and the per-APK JSON reports from the same preflight artifact, including after failure. The job logs name the affected APKs and shared libraries. The check covers static alignment for this bundletool target. Device compatibility and Google Play delivery require separate verification.
+
+#### MediaPipe signed Debug AAB example
+
+1. In the pinned MediaPipe Image Classification sample, run `./gradlew --no-configuration-cache :app:verifyModels :app:bundleDebug` from `examples/image_classification/android`. Use JDK 17, Android SDK Platform 36, Build Tools 36.0.0, and NDK 27.0.12077973. [Pinned sample](https://github.com/google-ai-edge/mediapipe-samples/tree/46d60d66baf21ae91977c488ea0875f0e13c4d2b/examples/image_classification/android)
+2. Upload `app/build/outputs/bundle/debug/app-debug.aab` as `candidate.aab` alongside `release.json` in the same artifact. Set the contract to the sample's app ID and versions and the disposable debug certificate's SHA-256 fingerprint.
+3. Call `aab-preflight.yml@v0.8.0` with `check-arm64-16kb: true`. To use the complete caller workflow in your repository, copy it and set its `push` branch. [Caller workflow](https://github.com/LeeJUNhao791/android-mcp-inspector/blob/47b6b661c883af8515039d9d01a284adc1ba9516/.github/workflows/mediapipe-aab-16kb-proof.yml) · [Reusable workflow at the tested commit](https://github.com/LeeJUNhao791/android-delivery-workflows/blob/552883397325c56ddb79d45af8676c7456a2a225/.github/workflows/aab-preflight.yml)
+
+In the hosted run, all six AAB checks passed. For the ARM64/API 35 target, all four native libraries in `base-arm64_v8a.apk` passed both 16 KiB ELF and ZIP alignment checks. `base-master.apk`, `base-en.apk`, and `base-xxhdpi.apk` contained no native libraries and were marked `not_applicable`. See the run's **Summary** or open `report.json` and `arm64-16kb/summary.json` in the `mediapipe-aab-16kb-report` artifact while it is available. [Successful run](https://github.com/LeeJUNhao791/android-mcp-inspector/actions/runs/45357346927)
+
+The run covers this signed Debug bundle and static alignment of its generated split APKs. Release builds, device execution, and Google Play delivery require separate verification.

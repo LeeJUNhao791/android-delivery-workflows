@@ -58,3 +58,13 @@ release-preflight:
 在上方示例的 `with` 下添加 `check-arm64-16kb: true`。该参数默认为 `false`。发布元数据预检通过后，bundletool 为 ARM64、API 35、480 dpi、`en-US` 的模拟目标生成 APK，工作流逐个检查 ELF 和 ZIP 对齐。校验失败或 APK 无法校验会使任务失败。没有适用原生库的 APK 记录为 `not_applicable`。
 
 从同一个预检附件下载 `arm64-16kb/summary.json` 和每个 APK 的 JSON 报告，任务失败时也会保留。任务日志会列出有问题的 APK 和 SO。该项检查覆盖上述 bundletool 目标的静态对齐情况，设备兼容性和 Google Play 实际交付需另行验证。
+
+#### MediaPipe 签名 Debug AAB 示例
+
+1. 使用固定版本的 MediaPipe 图像分类样例。在 `examples/image_classification/android` 目录运行 `./gradlew --no-configuration-cache :app:verifyModels :app:bundleDebug`。构建环境为 JDK 17、Android SDK Platform 36、Build Tools 36.0.0 和 NDK 27.0.12077973。 [上游固定版本](https://github.com/google-ai-edge/mediapipe-samples/tree/46d60d66baf21ae91977c488ea0875f0e13c4d2b/examples/image_classification/android)
+2. 将 `app/build/outputs/bundle/debug/app-debug.aab` 命名为 `candidate.aab`，与 `release.json` 一起上传到同一个附件。配置中填写样例的包名、版本号和版本名称，以及临时 Debug 签名证书的 SHA-256 指纹。
+3. 调用 `aab-preflight.yml@v0.8.0` 并设置 `check-arm64-16kb: true`。在自己的仓库使用完整调用示例时，复制工作流并设置 `push` 触发分支。 [调用方工作流](https://github.com/LeeJUNhao791/android-mcp-inspector/blob/47b6b661c883af8515039d9d01a284adc1ba9516/.github/workflows/mediapipe-aab-16kb-proof.yml) · [本次执行的可复用工作流](https://github.com/LeeJUNhao791/android-delivery-workflows/blob/552883397325c56ddb79d45af8676c7456a2a225/.github/workflows/aab-preflight.yml)
+
+GitHub Actions 运行中，AAB 的 6 项预检全部通过。在 ARM64/API 35 目标上，`base-arm64_v8a.apk` 中的 4 个原生库均通过 16 KiB ELF 和 ZIP 对齐检查。`base-master.apk`、`base-en.apk` 和 `base-xxhdpi.apk` 没有原生库，均记为 `not_applicable`。可在运行的 **Summary** 页查看结果，或在 `mediapipe-aab-16kb-report` 附件保留期间查看其中的 `report.json` 和 `arm64-16kb/summary.json`。 [成功运行记录](https://github.com/LeeJUNhao791/android-mcp-inspector/actions/runs/45357346927)
+
+本次验证覆盖这个签名 Debug AAB 和生成分包的静态对齐。Release 构建、设备运行和 Google Play 交付需另行验证。
