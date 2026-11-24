@@ -52,3 +52,9 @@ release-preflight:
 在工作流附件里查看 `aab-preflight-report`。如果 AAB 检查失败，预检任务也会失败。依赖它的任务在 GitHub Actions 默认条件下只会在预检通过后运行。
 
 要使用运行摘要，请将上面的 `@v0.1.0` 换成包含摘要步骤的标签或提交。打开本次运行的 **Summary** 页即可查看 Markdown 报告。要在自己的仓库验证两种结果，先用正确的发布配置运行一次，再把 `previous_version_code` 改成候选包的 `versionCode` 并重跑。如果预检未生成报告，查看 **Check candidate** 步骤的日志。
+
+### 启用 ARM64 分包对齐检查
+
+引用支持 `check-arm64-16kb` 的工作流提交或标签，在 `with` 下添加 `check-arm64-16kb: true`。该参数默认为 `false`。发布元数据预检通过后，bundletool 为 ARM64、API 35、480 dpi、`en-US` 的模拟目标生成 APK，工作流逐个检查 ELF 和 ZIP 对齐。校验失败或 APK 无法校验会使任务失败。没有适用原生库的 APK 记录为 `not_applicable`。
+
+从同一个预检附件下载 `arm64-16kb/summary.json` 和每个 APK 的 JSON 报告，任务失败时也会保留。任务日志会列出有问题的 APK 和 SO。该项检查覆盖上述 bundletool 目标的静态对齐情况，设备兼容性和 Google Play 实际交付需另行验证。
