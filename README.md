@@ -8,6 +8,10 @@
 
 Check a signed Android App Bundle before upload, or verify how a Kotlin or Flutter app plays and recovers a WebRTC stream. The WebRTC guide includes Pixel 4 XL results.
 
+![Actual AAB preflight: six checks pass; the same signed demo is rejected for a duplicate version](docs/assets/delivery-demo.png)
+
+Actual output visualization captured on 2026-11-26 from a compiled, test-signed PageProbe diagnostic demo. Offline AAB preflight only; device execution and store upload are separate. [Reproduction commands, input hash, and scope](docs/assets/demo.md).
+
 | Check | What the report shows |
 | --- | --- |
 | Bundle structure and app identity | Package name, `versionCode`, and `versionName` |

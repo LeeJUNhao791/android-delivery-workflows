@@ -8,6 +8,10 @@
 
 上传前检查签名后的 Android App Bundle，也可以验证 Kotlin 或 Flutter 应用的 WebRTC 播放与断流恢复。WebRTC 教程附 Pixel 4 XL 实测结果。
 
+![AAB 实际预检：6 项通过；同一个签名示例包因版本未递增被拦截](docs/assets/delivery-demo.png)
+
+2026-11-26 对已编译、使用测试密钥签名的 PageProbe 诊断示例执行预检，将实际输出制作成静态可视化。本轮仅做离线 AAB 预检，设备运行和商店上传需另行验证。[复现命令、输入哈希与范围](docs/assets/demo.md)。
+
 | 检查项 | 报告内容 |
 | --- | --- |
 | 包结构和应用信息 | 包名、`versionCode` 和 `versionName` |
